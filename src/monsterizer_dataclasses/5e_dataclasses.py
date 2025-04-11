@@ -33,6 +33,10 @@ class Immunity:
     type: str
     ac_modifier: float = field(default=0)
 
+    def __post_init__(self):
+        if not isinstance(self.type, str):
+            raise InvalidTypeError("Not a valid type", self.type)
+
 @dataclass
 class Vulnerability:
     type: str
