@@ -15,6 +15,15 @@ class BaseMonster:
     wisdom:int = field(default=10)
     charisma:int = field(default=10)
 
+    def __post_init__(self):
+        self.str_mod = self.strength//2 - 10
+        self.dex_mod = self.dexterity//2 - 10
+        self.con_mod = self.constitution//2 - 10
+        self.int_mod = self.intelligence//2 - 10
+        self.wis_mod = self.wisdom//2 - 10
+        self.cha_mod = self.charisma//2 - 10
+        self.armor_class = 10 + self.dex_mod
+
 @dataclass
 class Resistance:
     type: str
