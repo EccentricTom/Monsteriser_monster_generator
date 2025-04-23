@@ -1,0 +1,37 @@
+{
+    "weapons":{},
+    "armor":[
+        {
+            "name":"plate",
+            "armor_class": 18,
+            "cost": 1500,
+            "cost_denom": "gold",
+            "weight_lbs": 65,
+            "weight_kg":30,
+            "stat_req": true,
+            "stat_req_type": "strength",
+            "stat_req_num": 15,
+            "stealth_dis": false,
+            "dex_mod_cap": 0,
+            "category": "heavy"
+        },
+        {
+            "name":"half plate",
+            "armor_class": 15,
+            "cost": 750,
+            "cost_denom": "gold",
+            "weight_lbs": 40,
+            "weight_kg":18,
+            "stat_req": false,
+            "stat_req_type": null,
+            "stat_req_num": 0,
+            "stealth_dis": false,
+            "dex_mod_cap": 2,
+            "category": "medium"  
+    }
+    ],
+    "ammunition":{},
+    "tools":{},
+    "adventuring_equipment": {},
+    "magic_items":{}
+}

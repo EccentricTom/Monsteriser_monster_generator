@@ -78,8 +78,3 @@ env/
 # IDEs
 .idea/
 *.swp
-
-# Doccano export files (optional if using Doccano)
-*.jsonl
-*.csv
-*.json
