@@ -25,6 +25,9 @@ class BaseMonster:
     charisma:int = field(default=10)
     is_spellcaster: bool = field(default=False)
     innate_spellcasting: bool = field(default=False)
+    traits: list = field(default=[])
+    actions: list = field(default=[])
+    bonus_actions: list = field(default=[])
 
     def __post_init__(self):
         self.str_mod = self.strength//2 - 10
