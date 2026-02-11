@@ -7,3 +7,6 @@ Systems supported:
 
 Future Support:
 - Pathfinder 2nd Edition
+
+
+Use maths based on [this article](https://tomedunn.github.io/the-finished-book/monsters/monster-manual-2024/)
