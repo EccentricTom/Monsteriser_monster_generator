@@ -33,6 +33,11 @@ var/
 pip-log.txt
 pip-delete-this-directory.txt
 
+# environment variables
+.env
+.venv
+
+
 # Unit test / coverage reports
 htmlcov/
 .tox/
