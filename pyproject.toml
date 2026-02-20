@@ -9,6 +9,8 @@ dependencies = [
     "dataclasses-json>=0.6.7",
     "dotenv>=0.9.9",
     "nicegui>=3.7.1",
+    "numpy>=2.4.2",
+    "polars>=1.38.1",
     "pytest>=8.3.5",
     "ruff>=0.15.2",
 ]
