@@ -51,6 +51,9 @@ class GearReference:
     
     def get_ranged_gear_reference(self) -> dict:
         return self.full_gear_reference.get("weapons").get("ranged")
+    
+    def get_armor_gear_reference(self) -> dict:
+        return self.full_gear_reference.get("armor")
 
 def load_gear_reference() -> GearReference:
     filepath = Path("data/5E/gear.json")

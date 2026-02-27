@@ -1,6 +1,6 @@
 """Dataclasses for creating monsters using DnD 5th Edition."""
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, make_dataclass
 
 from dataclass_exceptions import InvalidTypeError
 from dataclasses_json import dataclass_json
@@ -173,5 +173,45 @@ class Gear:
 
     name: str
     type: str
+    category: str | None = field(default=None)
+
+    def __post_init__(self):
+        """Validate that type is the correct format."""
+        if not isinstance(self.name, str):
+            raise InvalidTypeError("Not a valid name", self.name)
+        if not isinstance(self.type, str):
+            raise InvalidTypeError("Not a valid type", self.type)
+        if not isinstance(self.category, str):
+            raise InvalidTypeError("Not a valid category", self.category)
+        
+    def weapon_details(self, details:dict) -> None:
+        """Fill in the details of the weapon based on the reference.
+        
+        Args:
+            details (dict): Details of the weapon from the gear reference
+
+        """
+        self.martial = True if details.get("catetory") == "martial" else False
+        self.damage_die = details.get("damage")
+        self.damage_type = details.get("damage_type")
+        if "range" in details:
+            self.range = details.get("range")
+        self.properties = details.get("properties", [])
+        self.mastery = details.get("mastery", None)
+
+    def armor_details(self, details:dict) -> None:
+        """Fill in the details of the armor based on the reference.
+        
+        Args:
+            details (dict): Details of the armor from the gear reference
+
+        """
+        self.armor_class = details.get("armor_class")
+        self.stealth_disadvantage = details.get("stealth_dis", False)
+        self.category = details.get("category", None)
+        self.dex_mod_cap = details.get("dex_mod_cap", None)
+        if details.get("stat_req"):
+            self.stat_req = details.get("stat_req", None)
+            self.stat_req_num = details.get("stat_req_num", None)
 
 
