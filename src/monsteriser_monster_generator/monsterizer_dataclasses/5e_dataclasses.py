@@ -138,6 +138,10 @@ class Immunity:
         """Validate that type is the correct format."""
         if not isinstance(self.type, str):
             raise InvalidTypeError("Not a valid type", self.type)
+        if self.type in ["bludgeoning", "piercing", "slashing"]:
+            self.ac_modifier += 2
+        else:            
+            self.ac_modifier += 1
 
 @dataclass(kw_only=True)
 class Vulnerability:
@@ -149,3 +153,25 @@ class Vulnerability:
     
     type: str
     ac_modifier: float = field(default=0)
+
+    def __post_init__(self):
+        """Validate that type is the correct format."""
+        if not isinstance(self.type, str):
+            raise InvalidTypeError("Not a valid type", self.type)
+        if self.type in ["bludgeoning", "piercing", "slashing"]:
+            self.ac_modifier -= 1
+        else:
+            self.ac_modifier -= 0.5
+
+@dataclass(kw_only=True)
+class Gear:
+    """
+    Dataclass used to track any monster gear.
+
+    Will be part of a list, even if there is just one piece of gear.
+    """
+
+    name: str
+    type: str
+
+
