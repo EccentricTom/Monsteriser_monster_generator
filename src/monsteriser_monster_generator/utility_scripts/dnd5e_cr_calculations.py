@@ -1,6 +1,6 @@
 """Collection of functions used in CR calculations."""
 
-from monsterizer_dataclasses.dnd5e_dataclasses import BaseMonster
+from monsterizer_dataclasses.dnd_5e.base_monster import BaseMonster
 
 
 # Attack bonus expectation
