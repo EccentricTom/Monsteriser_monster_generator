@@ -1,61 +1,118 @@
+"""Load and expose reference data."""
+
+import json
 from dataclasses import dataclass
-import os
-from dotenv import load_dotenv, find_dotenv
-import polars as pl
 from pathlib import Path
+from typing import TypedDict, cast
 
-load_dotenv(find_dotenv())
+import polars as pl
 
-# @dataclass(frozen=True)
-# class Settings:
-#     api_url: str
-#     api_lang: str
-#     db_url: str
-#     news_category: list
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+DATA_DIRECTORY = PROJECT_ROOT / "data" / "fifth_edition"
 
-# def load_settings() -> Settings:
-#     api_url = os.getenv("API_URL")
-#     db_url = os.getenv("DB_URL")
-#     api_lang = os.getenv("API_LANG", "en")
-#     news_category = os.getenv("NEWS_CATEGORY", "").split(",")
+CHALLENGE_RATING_FILE = DATA_DIRECTORY / "baseline_stats.csv"
+GEAR_FILE = DATA_DIRECTORY / "gear.json"
 
-#     if not api_url:
-#         raise RuntimeError("API_URL not set")
-#     if not db_url:
-#         raise RuntimeError("DB_URL not set")
+type ReferenceEntry = dict[str, object]
+type ReferenceGroup = dict[str, ReferenceEntry]
 
-#     return Settings(api_url=api_url, api_lang=api_lang, db_url=db_url, news_category=news_category)
 
-@dataclass(frozen=True)
+class WeaponReferences(TypedDict):
+    """Contain melee and ranged weapon-reference data."""
+
+    melee: ReferenceGroup
+    ranged: ReferenceGroup
+
+
+class GearReferenceData(TypedDict):
+    """Describe the expected structure of the gear-reference file."""
+
+    weapons: WeaponReferences
+    armor: ReferenceGroup
+
+
+@dataclass(frozen=True, slots=True)
 class ChallengeRatingReference:
+    """Provide access to challenge-rating reference statistics."""
+
     reference: pl.DataFrame
 
     def get_reference_base(self) -> pl.DataFrame:
-        return self.reference.drop(columns=["dpr_legend_min", "dpr_legend_max"])
-    
-    def get_references_legend(self) -> pl.DataFrame:
-        return self.reference.select(["challenge_rating", "dpr_legend_min", "dpr_legend_max"])
+        """Return the reference without legendary damage columns."""
+        return self.reference.drop(
+            "dpr_legend_min",
+            "dpr_legend_max",
+        )
+
+    def get_legendary_reference(self) -> pl.DataFrame:
+        """Return challenge-rating and legendary damage columns."""
+        return self.reference.select(
+            "challenge_rating",
+            "dpr_legend_min",
+            "dpr_legend_max",
+        )
 
 
-def load_challenge_rating_reference() -> ChallengeRatingReference:
-    df_filepath = Path("data/5E/baseline_stats.csv")
-    df = pl.read_csv(df_filepath)
-    return ChallengeRatingReference(reference=df)
+def load_challenge_rating_reference(
+    filepath: Path = CHALLENGE_RATING_FILE,
+) -> ChallengeRatingReference:
+    """Load challenge-rating reference data from a CSV file.
 
-@dataclass(frozen=True)
+    Args:
+        filepath: Path to the challenge-rating reference CSV file.
+
+    Returns: An immutable challenge-rating reference object.
+
+    Raises: FileNotFoundError: If the reference file does not exist. pl.exceptions.PolarsError: If Polars cannot parse the CSV file.
+
+    """
+    if not filepath.is_file():
+        raise FileNotFoundError(f"Challenge-rating reference file not found: {filepath}")
+    reference = pl.read_csv(filepath)
+    return ChallengeRatingReference(reference=reference)
+
+
+@dataclass(frozen=True, slots=True)
 class GearReference:
-    full_gear_reference: dict
+    """Provide access to weapon and armor reference data."""
 
-    def get_melee_gear_reference(self) -> dict:
-        return self.full_gear_reference.get("weapons").get("melee")
-    
-    def get_ranged_gear_reference(self) -> dict:
-        return self.full_gear_reference.get("weapons").get("ranged")
-    
-    def get_armor_gear_reference(self) -> dict:
-        return self.full_gear_reference.get("armor")
+    full_reference: GearReferenceData
 
-def load_gear_reference() -> GearReference:
-    filepath = Path("data/5E/gear.json")
-    full_gear_reference = pl.read_json(filepath).to_dict(as_series=False)
-    return GearReference(full_gear_reference=full_gear_reference)
+    def get_melee_gear_reference(self) -> ReferenceGroup:
+        """Return all melee weapon-reference entries."""
+        return self.full_reference["weapons"]["melee"]
+
+    def get_ranged_gear_reference(self) -> ReferenceGroup:
+        """Return all ranged weapon-reference entries."""
+        return self.full_reference["weapons"]["ranged"]
+
+    def get_armor_gear_reference(self) -> ReferenceGroup:
+        """Return all armor-reference entries."""
+        return self.full_reference["armor"]
+
+
+def load_gear_reference(
+    filepath: Path = GEAR_FILE,
+) -> GearReference:
+    """Load gear-reference data from a JSON file.
+
+    Args:
+        filepath: Path to the gear-reference JSON file.
+
+        Returns: An immutable gear-reference object.
+
+    Raises:
+            FileNotFoundError: If the reference file does not exist.
+            json.JSONDecodeError: If the file does not contain valid JSON.
+            TypeError: If the top-level JSON value is not an object.
+
+    """
+    if not filepath.is_file():
+        raise FileNotFoundError(f"Gear reference file not found: {filepath}")
+    raw_reference: object = json.loads(filepath.read_text(encoding="utf-8"))
+    if not isinstance(raw_reference, dict):
+        raise TypeError("The gear reference must contain a JSON object")
+
+    reference = cast(GearReferenceData, raw_reference)
+
+    return GearReference(full_reference=reference)
