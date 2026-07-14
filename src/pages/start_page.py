@@ -6,6 +6,7 @@ from src.nicegui_formatting import theme_main
 
 router = APIRouter()
 
+
 @router.page("/")
 async def start_page():
     with theme_main.theme_frame("Start Page"):

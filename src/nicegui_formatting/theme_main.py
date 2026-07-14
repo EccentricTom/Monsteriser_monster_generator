@@ -4,8 +4,9 @@ from contextlib import contextmanager
 
 from nicegui import app, context, ui
 
+
 @contextmanager
-def theme_frame(navtitle:str, session: bool = False):
+def theme_frame(navtitle: str, session: bool = False):
     """
     Create a default theme for the application.
 
