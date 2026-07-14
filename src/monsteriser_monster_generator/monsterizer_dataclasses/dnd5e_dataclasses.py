@@ -1,6 +1,6 @@
 """Dataclasses for creating monsters using DnD 5th Edition."""
 
-from dataclasses import dataclass, field, make_dataclass
+from dataclasses import dataclass, field
 
 from dataclass_exceptions import InvalidTypeError
 from dataclasses_json import dataclass_json
@@ -11,8 +11,7 @@ from dataclasses_json import dataclass_json
 @dataclass_json
 @dataclass(kw_only=True)
 class BaseMonster:
-    """
-    Base dataclass for all monsters.
+    """Base dataclass for all monsters.
 
     All monster types derive from this base.
     """
@@ -34,6 +33,7 @@ class BaseMonster:
     traits: list = field(default=[])
     actions: list = field(default=[])
     bonus_actions: list = field(default=[])
+    expected_cr: int = field(default=1)
 
     def __post_init__(self):
         """Set up ability modifiers and base armor class."""
@@ -44,6 +44,7 @@ class BaseMonster:
         self.wis_mod = self.wisdom // 2 - 10
         self.cha_mod = self.charisma // 2 - 10
         self.armor_class = 10 + self.dex_mod
+        self.current_cr = self.expected_cr
 
 
 # Monster type dataclasses
@@ -52,8 +53,7 @@ class BaseMonster:
 @dataclass_json
 @dataclass(kw_only=True)
 class Aberration(BaseMonster):
-    """
-    Aberration.
+    """Aberration.
 
     Inherits from BaseMonster.
 
@@ -61,14 +61,13 @@ class Aberration(BaseMonster):
     """
 
     monster_type: str = "Aberration"
-    gear: list | None = field(default=None, init=False)
+    gear: list[dataclass] | None = field(default=None, init=False)
 
 
 @dataclass_json
 @dataclass(kw_only=True)
 class Beast(BaseMonster):
-    """
-    Beast.
+    """Beast.
 
     Inherits from BaseMonster.
 
@@ -84,8 +83,7 @@ class Beast(BaseMonster):
 @dataclass_json
 @dataclass(kw_only=True)
 class Celestial(BaseMonster):
-    """
-    Celestial.
+    """Celestial.
 
     Inherits from BaseMonster.
 
@@ -99,8 +97,7 @@ class Celestial(BaseMonster):
 @dataclass_json
 @dataclass(kw_only=True)
 class Constructs(BaseMonster):
-    """
-    Construct.
+    """Construct.
 
     Inherits from BaseMonster.
     """
@@ -114,8 +111,7 @@ class Constructs(BaseMonster):
 
 @dataclass(kw_only=True)
 class Resistance:
-    """
-    Dataclass used to track any monster resistances.
+    """Dataclass used to track any monster resistances.
 
     Will be part of a list, even if there is just one resistance.
     """
@@ -135,8 +131,7 @@ class Resistance:
 
 @dataclass(kw_only=True)
 class Immunity:
-    """
-    Dataclass used to track any monster immunities.
+    """Dataclass used to track any monster immunities.
 
     Will be part of a list, even if there is just one resistance.
     """
@@ -150,14 +145,13 @@ class Immunity:
             raise InvalidTypeError("Not a valid type", self.type)
         if self.type in ["bludgeoning", "piercing", "slashing"]:
             self.ac_modifier += 2
-        else:            
+        else:
             self.ac_modifier += 1
 
 
 @dataclass(kw_only=True)
 class Vulnerability:
-    """
-    Dataclass used to track any monster vulnerabilities.
+    """Dataclass used to track any monster vulnerabilities.
 
     Will be part of a list, even if there is just one resistance.
     """
@@ -174,10 +168,10 @@ class Vulnerability:
         else:
             self.ac_modifier -= 0.5
 
+
 @dataclass(kw_only=True)
 class Gear:
-    """
-    Dataclass used to track any monster gear.
+    """Dataclass used to track any monster gear.
 
     Will be part of a list, even if there is just one piece of gear.
     """
@@ -194,10 +188,10 @@ class Gear:
             raise InvalidTypeError("Not a valid type", self.type)
         if not isinstance(self.category, str):
             raise InvalidTypeError("Not a valid category", self.category)
-        
-    def weapon_details(self, details:dict) -> None:
+
+    def weapon_details(self, details: dict) -> None:
         """Fill in the details of the weapon based on the reference.
-        
+
         Args:
             details (dict): Details of the weapon from the gear reference
 
@@ -208,21 +202,19 @@ class Gear:
         if "range" in details:
             self.range = details.get("range")
         self.properties = details.get("properties", [])
-        self.mastery = details.get("mastery", None)
+        self.mastery = details.get("mastery")
 
-    def armor_details(self, details:dict) -> None:
+    def armor_details(self, details: dict) -> None:
         """Fill in the details of the armor based on the reference.
-        
+
         Args:
             details (dict): Details of the armor from the gear reference
 
         """
         self.armor_class = details.get("armor_class")
         self.stealth_disadvantage = details.get("stealth_dis", False)
-        self.category = details.get("category", None)
-        self.dex_mod_cap = details.get("dex_mod_cap", None)
+        self.category = details.get("category")
+        self.dex_mod_cap = details.get("dex_mod_cap")
         if details.get("stat_req"):
-            self.stat_req = details.get("stat_req", None)
-            self.stat_req_num = details.get("stat_req_num", None)
-
-
+            self.stat_req = details.get("stat_req")
+            self.stat_req_num = details.get("stat_req_num")
