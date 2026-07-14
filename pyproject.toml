@@ -14,3 +14,157 @@ dependencies = [
     "pytest>=8.3.5",
     "ruff>=0.15.2",
 ]
+[tool.ruff]
+target-version = "py313"
+line-length = 100
+indent-width = 4
+
+extend-exclude = [
+    ".git",
+    ".idea",
+    ".mypy_cache",
+    ".pytest_cache",
+    ".ruff_cache",
+    ".venv",
+    "build",
+    "dist",
+    "node_modules",
+]
+
+[tool.ruff.lint]
+select = [
+    # Pycodestyle
+    "E",
+    "W",
+
+    # Pyflakes
+    "F",
+
+    # Import sorting
+    "I",
+
+    # Naming conventions
+    "N",
+
+    # Modern Python syntax
+    "UP",
+
+    # Type annotation requirements
+    "ANN",
+
+    # Docstring requirements and formatting
+    "D",
+
+    # Common bugs and design problems
+    "B",
+
+    # Built-in shadowing
+    "A",
+
+    # Comprehension improvements
+    "C4",
+
+    # Complexity
+    "C90",
+
+    # Datetime timezone safety
+    "DTZ",
+
+    # Debugger statements
+    "T10",
+
+    # print() statements
+    "T20",
+
+    # Exception-handling practices
+    "TRY",
+
+    # Return statement practices
+    "RET",
+
+    # Simplification opportunities
+    "SIM",
+
+    # Function argument issues
+    "ARG",
+
+    # pathlib usage
+    "PTH",
+
+    # Commented-out code
+    "ERA",
+
+    # Pylint rules
+    "PL",
+
+    # Performance problems
+    "PERF",
+
+    # Async problems
+    "ASYNC",
+
+    # Logging practices
+    "LOG",
+    "G",
+
+    # Ruff-specific rules
+    "RUF",
+]
+
+ignore = [
+    # Allow long exception messages outside the raise statement.
+    "TRY003",
+
+    # Avoid forcing every exception message into a custom exception class.
+    "EM101",
+    "EM102",
+
+    # Can conflict with formatter-generated line wrapping.
+    "E501",
+
+    # Often too restrictive for normal APIs and callback functions.
+    "PLR0913",
+
+    # Sometimes a longer function is clearer than artificial splitting.
+    "PLR0915",
+]
+
+fixable = ["ALL"]
+unfixable = []
+
+dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?)|dummy.*)$"
+
+[tool.ruff.lint.mccabe]
+max-complexity = 10
+
+[tool.ruff.lint.pylint]
+max-args = 7
+max-branches = 12
+max-returns = 6
+max-statements = 50
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**/*.py" = [
+    # Tests commonly use assert directly.
+    "S101",
+
+    # Fixtures and mocks commonly leave arguments unused.
+    "ARG001",
+    "ARG002",
+
+    # Test functions may legitimately contain many statements.
+    "PLR0915",
+]
+
+"**/__init__.py" = [
+    # __init__.py files commonly re-export imported names.
+    "F401",
+]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+line-ending = "auto"
+skip-magic-trailing-comma = false
+docstring-code-format = true
+docstring-code-line-length = 88
