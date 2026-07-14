@@ -29,6 +29,7 @@ class BaseMonster:
     wisdom: int = field(default=10)
     charisma: int = field(default=10)
     is_spellcaster: bool = field(default=False)
+    is_legendary: bool = field(default=False)
     innate_spellcasting: bool = field(default=False)
     traits: list = field(default=[])
     actions: list = field(default=[])
