@@ -32,6 +32,10 @@ class Weapon(Gear):
     properties: list[str] = field(default_factory=list, init=False)
     mastery: str | None = field(default=None, init=False)
 
+    reach: int | None = field(default=None, init=False)
+    normal_range: int | None = field(default=None, init=False)
+    long_range: int | None = field(default=None, init=False)
+
     def apply_refernce_details(self, details: WeaponDetails) -> None:
         """Populate this item with weapon-reference data.
 
@@ -119,7 +123,7 @@ class Weapon(Gear):
                 )
 
     @staticmethod
-    def _parse_damage_dice(damage: str) -> tuple(int, int):
+    def _parse_damage_dice(damage: str) -> tuple[int, int]:
         """Parse a damage expression, i.e. "1d8".
 
         Args:
