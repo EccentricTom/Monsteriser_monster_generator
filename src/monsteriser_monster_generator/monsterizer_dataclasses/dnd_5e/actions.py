@@ -47,9 +47,12 @@ class AttackAction(MonsterAction):
     attack_range: AttackRange
     attack_bonus: int
     damage: tuple[DamageRoll, ...]
-    reach: int | None = None
-    normal_range: int | None = None
-    long_range: int | None = None
+    reach_ft: float | None = None
+    reach_m: float | None = None
+    normal_range_ft: float | None = None
+    long_range_ft: float | None = None
+    normal_range_m: float | None = None
+    long_range_m: float | None = None
 
     def average_damage(self) -> float:
         """Average damage of the attack."""
