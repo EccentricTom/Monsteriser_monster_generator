@@ -154,6 +154,7 @@ class Weapon(Gear):
         damage_modifier: int,
         action_id: str | None = None,
         action_name: str | None = None,
+        additional_damage: tuple[DamageRoll, ...] = (),
     ) -> AttackAction:
         """Create an attack action from this weapon.
 
@@ -163,6 +164,7 @@ class Weapon(Gear):
             damage_modifier: Modifier added to the damage roll.
             action_id: Optional identifier for the generated action.
             action_name: Option display name for the generated action.
+            additional_damage: Extra damage riders dealt by the attack.
 
         Returns:
             An attack action configured for the monster using the weapon
@@ -176,26 +178,26 @@ class Weapon(Gear):
         dice_count, die_size = self._get_damage_dice(mode)
         attack_range = self._get_attack_range(mode)
 
+        base_damage = DamageRoll(
+            dice_count=dice_count,
+            die_size=die_size,
+            modifier=damage_modifier,
+            damage_type=damage_type,
+        )
+
         return AttackAction(
             action_id=action_id or self._default_action_id(mode),
             name=action_name or name,
             origin="gear",
             attack_range=attack_range,
             attack_bonus=attack_bonus,
-            reach_ft=self.reach_ft,
-            reach_m=self.reach_m,
-            normal_range_ft=self.normal_range_ft,
-            long_range_ft=self.long_range_ft,
-            normal_range_m=self.normal_range_m,
-            long_range_m=self.long_range_m,
-            damage=(
-                DamageRoll(
-                    dice_count=dice_count,
-                    die_size=die_size,
-                    modifier=damage_modifier,
-                    damage_type=damage_type,
-                ),
-            ),
+            reach_ft=self._get_reach_ft(mode),
+            reach_m=self._get_reach_m(mode),
+            normal_range_ft=self._get_normal_range_ft(mode),
+            long_range_ft=self._get_long_range_ft(mode),
+            normal_range_m=self._get_normal_range_m(mode),
+            long_range_m=self._get_long_range_m(mode),
+            damage=(base_damage, *additional_damage),
         )
 
     def _get_damage_dice(
