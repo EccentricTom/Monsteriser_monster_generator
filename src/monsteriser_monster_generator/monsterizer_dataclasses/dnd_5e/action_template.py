@@ -137,3 +137,70 @@ class NaturalAttackTemplate:
             name=name or self.name,
             damage=self.damage + additional_damage,
         )
+
+
+BITE = NaturalAttackTemplate(
+    template_id="bite",
+    name="Bite",
+    attack_range="melee",
+    ability_modifier="strength_modifier",
+    reach_ft=5,
+    reach_m=1.5,
+    damage=(
+        DamageTemplate(
+            dice_count=1,
+            die_size=6,
+            damage_type="piercing",
+            add_ability_modifier=True,
+        ),
+    ),
+)
+
+CLAW = NaturalAttackTemplate(
+    template_id="claw",
+    name="Claw",
+    attack_range="melee",
+    ability_modifier="strength_modifier",
+    reach_ft=5,
+    reach_m=1.5,
+    damage=(
+        DamageTemplate(
+            dice_count=1,
+            die_size=6,
+            damage_type="slashing",
+            add_ability_modifier=True,
+        ),
+    ),
+)
+TENTACLE = NaturalAttackTemplate(
+    template_id="tentacle",
+    name="Tentacle",
+    attack_range="melee",
+    ability_modifier="strength_modifier",
+    reach_ft=10,
+    reach_m=3,
+    damage=(
+        DamageTemplate(
+            dice_count=1,
+            die_size=8,
+            damage_type="bludgeoning",
+            add_ability_modifier=True,
+        ),
+    ),
+)
+SLAM = NaturalAttackTemplate(
+    template_id="slam",
+    name="Slam",
+    attack_range="melee",
+    ability_modifier="strength_modifier",
+    reach_ft=5,
+    reach_m=1.5,
+    damage=(
+        DamageTemplate(
+            dice_count=1,
+            die_size=8,
+            damage_type="bludgeoning",
+            add_ability_modifier=True,
+        ),
+    ),
+)
