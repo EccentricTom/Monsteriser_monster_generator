@@ -179,6 +179,7 @@ class Weapon(Gear):
         return AttackAction(
             action_id=action_id or self._default_action_id(mode),
             name=action_name or name,
+            origin="gear",
             attack_range=attack_range,
             attack_bonus=attack_bonus,
             reach_ft=self.reach_ft,

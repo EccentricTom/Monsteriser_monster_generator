@@ -9,6 +9,13 @@ type ActionCategory = Literal["attack", "multiattack", "special", "spellcasting"
 
 type AttackRange = Literal["melee", "ranged", "melee_or_range"]
 
+type ActionOrigin = Literal[
+    "natural",
+    "gear",
+    "special",
+    "custom",
+]
+
 
 @dataclass(kw_only=True, frozen=True, slots=True)
 class DamageRoll:
@@ -33,6 +40,7 @@ class MonsterAction:
     action_id: str
     name: str
     category: ActionCategory
+    origin: ActionOrigin
     description: str = ""
 
 
@@ -57,3 +65,28 @@ class AttackAction(MonsterAction):
     def average_damage(self) -> float:
         """Average damage of the attack."""
         return sum(damage_roll.average_damage() for damage_roll in self.damage)
+
+
+@dataclass(kw_only=True, frozen=True, slots=True)
+class ActionUse:
+    """Represent repeated use of an action within a routine."""
+
+    action_id: str
+    count: int = 1
+
+    def __post_init__(self) -> None:
+        """Validate the action-use count."""
+        if self.count < 1:
+            raise ValueError("Action-use count must be positive")
+
+
+@dataclass(kw_only=True, frozen=True, slots=True)
+class MultiattackAction(MonsterAction):
+    """Represent a fixed combination of attacks in one action."""
+
+    category: Literal["multiattack"] = field(
+        default="multiattack",
+        init=False,
+    )
+    origin: Literal["natural", "special", "custom"] = "natural"
+    action_uses: tuple[ActionUse, ...]
