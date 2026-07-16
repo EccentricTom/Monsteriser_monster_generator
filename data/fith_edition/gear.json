@@ -13,6 +13,8 @@
           "damage_type": "bludgeoning",
           "stat_mod": "strength",
           "properties": ["light"],
+          "reach_ft": 5,
+          "reach_m": 1.5,
           "mastery": "slow"
         },
         {
@@ -27,7 +29,10 @@
           "damage_type": "piercing",
           "stat_mod": "str/dex",
           "properties": ["finesse", "light", "thrown"],
-          "range": { "normal": 20, "long": 60 },
+          "thrown_range_ft": { "normal": 20, "long": 60 },
+          "thrown_range_m": {"normal": 6, "long": 18},
+          "reach_ft": 5,
+          "reach_m": 1.5,
           "mastery": "nick"
         },
         {
@@ -42,6 +47,8 @@
           "damage_type": "bludgeoning",
           "stat_mod": "strength",
           "properties": ["two-handed"],
+          "reach_ft": 5,
+          "reach_m": 1.5,
           "mastery": "push"
         },
         {
@@ -56,7 +63,10 @@
           "damage_type": "slashing",
           "stat_mod": "strength",
           "properties": ["light", "thrown"],
-          "range": { "normal": 20, "long": 60 },
+          "thrown_range_ft": { "normal": 20, "long": 60 },
+          "thrown_range_m": {"normal": 6, "long": 18},
+          "reach_ft": 5,
+          "reach_m": 1.5,
           "mastery": "vex"
         },
         {
@@ -71,7 +81,10 @@
           "damage_type": "bludgeoning",
           "stat_mod": "strength",
           "properties": ["light", "thrown"],
-          "range": { "normal": 20, "long": 60 },
+          "thrown_range_ft": { "normal": 20, "long": 60 },
+          "thrown_range_m": {"normal": 6, "long": 18},
+          "reach_ft": 5,
+          "reach_m": 1.5,
           "mastery": "nick"
         },
         {
@@ -86,6 +99,8 @@
           "damage_type": "bludgeoning",
           "stat_mod": "strength",
           "properties": [],
+          "reach_ft": 5,
+          "reach_m": 1.5,
           "mastery": "sap"
         },
         {
@@ -101,6 +116,8 @@
           "stat_mod": "strength",
           "properties": ["versatile"],
           "versatile_damage": "1d8",
+          "reach_ft": 5,
+          "reach_m": 1.5,
           "mastery": "topple"
         },
         {
@@ -115,6 +132,8 @@
           "damage_type": "slashing",
           "stat_mod": "strength",
           "properties": ["light"],
+          "reach_ft": 5,
+          "reach_m": 1.5,
           "mastery": "nick"
         },
         {
@@ -129,7 +148,10 @@
           "damage_type": "piercing",
           "stat_mod": "strength",
           "properties": ["thrown", "versatile"],
-          "range": { "normal": 20, "long": 60 },
+          "thrown_range_ft": { "normal": 20, "long": 60 },
+          "thrown_range_m": {"normal": 6, "long": 18},
+          "reach_ft": 5,
+          "reach_m": 1.5,
           "versatile_damage": "1d8",
           "mastery": "sap"
         }
@@ -147,6 +169,8 @@
           "stat_mod": "strength",
           "properties": ["versatile"],
           "versatile_damage": "1d10",
+          "reach_ft": 5,
+          "reach_m": 1.5,
           "mastery": "topple"
         },
         {
@@ -161,6 +185,8 @@
           "damage_type": "bludgeoning",
           "stat_mod": "strength",
           "properties": [],
+          "reach_ft": 5,
+          "reach_m": 1.5,
           "mastery": "sap"
         },
         {
@@ -175,6 +201,8 @@
           "damage_type": "slashing",
           "stat_mod": "strength",
           "properties": ["heavy", "reach", "two-handed"],
+          "reach_ft": 10,
+          "reach_m": 3,
           "mastery": "graze"
         },
         {
@@ -189,6 +217,8 @@
           "damage_type": "slashing",
           "stat_mod": "strength",
           "properties": ["heavy", "two-handed"],
+          "reach_ft": 10,
+          "reach_m": 3,
           "mastery": "cleave"
         },
         {
@@ -203,6 +233,8 @@
           "damage_type": "slashing",
           "stat_mod": "strength",
           "properties": ["heavy", "two-handed"],
+          "reach_ft": 5,
+          "reach_m": 1.5,
           "mastery": "graze"
         },
         {
@@ -217,6 +249,8 @@
           "damage_type": "slashing",
           "stat_mod": "strength",
           "properties": ["heavy", "reach", "two-handed"],
+          "reach_ft": 10,
+          "reach_m": 3,
           "mastery": "cleave"
         },
         {
@@ -231,6 +265,8 @@
           "damage_type": "piercing",
           "stat_mod": "strength",
           "properties": ["reach", "special"],
+          "reach_ft": 10,
+          "reach_m": 3,
           "mastery": "topple"
         },
         {
@@ -246,6 +282,8 @@
           "stat_mod": "strength",
           "properties": ["versatile"],
           "versatile_damage": "1d10",
+          "reach_ft": 5,
+          "reach_m": 1.5,
           "mastery": "sap"
         },
         {
@@ -260,6 +298,8 @@
           "damage_type": "bludgeoning",
           "stat_mod": "strength",
           "properties": ["heavy", "two-handed"],
+          "reach_ft": 5,
+          "reach_m": 1.5,
           "mastery": "topple"
         },
         {
@@ -274,6 +314,8 @@
           "damage_type": "piercing",
           "stat_mod": "strength",
           "properties": [],
+          "reach_ft": 5,
+          "reach_m": 1.5,
           "mastery": "sap"
         },
         {
@@ -288,6 +330,8 @@
           "damage_type": "piercing",
           "stat_mod": "strength",
           "properties": ["heavy", "reach", "two-handed"],
+          "reach_ft": 10,
+          "reach_m": 3,
           "mastery": "push"
         },
         {
@@ -302,6 +346,8 @@
           "damage_type": "piercing",
           "stat_mod": "dexterity",
           "properties": ["finesse"],
+          "reach_ft": 5,
+          "reach_m": 1.5,
           "mastery": "vex"
         },
         {
@@ -316,6 +362,8 @@
           "damage_type": "slashing",
           "stat_mod": "dexterity",
           "properties": ["finesse", "light"],
+          "reach_ft": 5,
+          "reach_m": 1.5,
           "mastery": "vex"
         },
         {
@@ -330,6 +378,8 @@
           "damage_type": "piercing",
           "stat_mod": "dexterity",
           "properties": ["finesse", "light"],
+          "reach_ft": 5,
+          "reach_m": 1.5,
           "mastery": "vex"
         },
         {
@@ -344,7 +394,10 @@
           "damage_type": "piercing",
           "stat_mod": "strength",
           "properties": ["thrown", "versatile"],
-          "range": { "normal": 20, "long": 60 },
+          "thrown_range_ft": { "normal": 20, "long": 60 },
+          "thrown_range_m": {"normal": 6, "long": 18},
+          "reach_ft": 5,
+          "reach_m": 1.5,
           "versatile_damage": "1d8",
           "mastery": "slow"
         },
@@ -360,6 +413,8 @@
           "damage_type": "piercing",
           "stat_mod": "strength",
           "properties": [],
+          "reach_ft": 5,
+          "reach_m": 1.5,
           "mastery": "puncture"
         },
         {
@@ -375,6 +430,8 @@
           "stat_mod": "strength",
           "properties": ["versatile"],
           "versatile_damage": "1d10",
+          "reach_ft": 5,
+          "reach_m": 1.5,
           "mastery": "topple"
         },
         {
@@ -389,6 +446,8 @@
           "damage_type": "slashing",
           "stat_mod": "dexterity",
           "properties": ["finesse", "reach"],
+          "reach_ft": 10,
+          "reach_m": 3,
           "mastery": "graze"
         }]
       },
@@ -406,7 +465,8 @@
             "damage_type": "piercing",
             "stat_mod": "strength",
             "properties": ["thrown"],
-            "range": { "normal": 30, "long": 120 },
+            "thrown_range_ft": { "normal": 80, "long": 320 },
+            "thrown_range_m": { "normal": 24, "long": 97.5 },
             "mastery": "slow"
           },
           {
@@ -437,8 +497,8 @@
             "damage_type": "piercing",
             "stat_mod": "dexterity",
             "properties": ["finesse", "thrown"],
-            "range_ft": { "normal": 20, "long": 60 },
-            "range_m": { "normal": 6, "long": 18 },
+            "thrown_range_ft": { "normal": 20, "long": 60 },
+            "thrownrange_m": { "normal": 6, "long": 18 },
             "mastery": "vex"
           },
           {
@@ -551,8 +611,8 @@
             "damage_type": null,
             "stat_mod": "strength",
             "properties": ["special", "thrown"],
-            "range_ft": { "normal": 5, "long": 15 },
-            "range_m": { "normal": 1.5, "long": 4.5 },
+            "thrown_range_ft": { "normal": 5, "long": 15 },
+            "thrown_range_m": { "normal": 1.5, "long": 4.5 },
             "mastery": "topple"
           }
         ]
