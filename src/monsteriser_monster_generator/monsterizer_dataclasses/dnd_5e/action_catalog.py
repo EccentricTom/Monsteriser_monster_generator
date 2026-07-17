@@ -36,3 +36,36 @@ RECOMMENDED_NATURAL_ATTACKS: dict[MonsterType, tuple[NaturalAttackTemplate, ...]
         SLAM,
     ),
 }
+
+
+def get_recommended_natural_attacks(
+    monster_type: MonsterType,
+) -> tuple[NaturalAttackTemplate, ...]:
+    """Return recommended natural attacks for a monster type.
+
+    These are recommendations only, and can be adjusted with additional damage riders.
+
+    Args:
+        monster_type: The type of monster being queried.
+
+    Returns:
+        Recommened immutable natural attack templates.
+
+    """
+    return RECOMMENDED_NATURAL_ATTACKS[monster_type]
+
+
+def is_recommended_natural_attack(
+    *, monster_type: MonsterType, template: NaturalAttackTemplate
+) -> bool:
+    """Check if natural attack template fits the monster type.
+
+    Args:
+        monster_type: the type of monster being checked.
+        template: The natural attack template to be checked.
+
+    Returns:
+        Whether the template suits the passed monster type.
+
+    """
+    return template in RECOMMENDED_NATURAL_ATTACKS[monster_type]
