@@ -127,6 +127,9 @@ ignore = [
 
     # Sometimes a longer function is clearer than artificial splitting.
     "PLR0915",
+
+    # Not needed for clear structural values
+    "PLR2004",
 ]
 
 fixable = ["ALL"]
