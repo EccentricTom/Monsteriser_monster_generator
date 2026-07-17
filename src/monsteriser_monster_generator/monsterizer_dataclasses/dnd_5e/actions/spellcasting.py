@@ -22,7 +22,7 @@ class SpellDefinition:
     saving_throw: SavingThrowAction | None = None
 
     def __post_init__(self) -> None:
-        """Validate the spell definition"""
+        """Validate the spell definition."""
         if self.level < 0:
             raise ValueError("Spell level cannot be negative")
         if self.attack is not None and self.saving_throw is not None:
