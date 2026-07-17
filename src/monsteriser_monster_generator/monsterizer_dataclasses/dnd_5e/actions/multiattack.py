@@ -1,4 +1,4 @@
-"""Define actions available to monsters."""
+"""Define Multiattack actions and substitution rules."""
 
 from collections import Counter
 from collections.abc import Mapping
@@ -6,168 +6,8 @@ from dataclasses import dataclass, field
 from itertools import combinations, product
 from typing import Literal
 
-from .model_types import (
-    AbilityName,
-    ActionTiming,
-    ConditionEffect,
-    DamageType,
-    RechargeValue,
-    SavingThrowOutcome,
-)
-
-type ActionCategory = Literal["attack", "multiattack", "special", "spellcasting", "saving_throw"]
-
-type AttackRange = Literal["melee", "ranged", "melee_or_range"]
-
-type ActionOrigin = Literal[
-    "natural",
-    "gear",
-    "special",
-    "custom",
-]
-
-
-@dataclass(kw_only=True, frozen=True, slots=True)
-class AtWillUsage:
-    """Represent an ability that can be used at will."""
-
-    usage_type: Literal["at_will"] = field(
-        default="at_will",
-        init=False,
-    )
-
-
-@dataclass(kw_only=True, frozen=True, slots=True)
-class LimitedUsage:
-    """Repesent an ability that has a limited number of uses."""
-
-    uses: int
-    period: Literal["day", "rest"]
-
-    usage_type: Literal["limited"] = field(
-        default="limited",
-        init=False,
-    )
-
-    def __post_init__(self) -> None:
-        """Validate that the ability can be used at least once."""
-        if self.uses < 1:
-            raise ValueError("Limited use ability need to be usuable at least once.")
-
-
-@dataclass(kw_only=True, frozen=True, slots=True)
-class RechargeUsage:
-    """Represent an ability that recharges on specified d6 results."""
-
-    recharge_minimum: RechargeValue
-
-    usage_type: Literal["recharge"] = field(
-        default="recharge",
-        init=False,
-    )
-
-    @property
-    def recharge_probability(self) -> float:
-        """Return the probability of recharging on a d6 roll."""
-        successfull_results = 7 - self.recharge_minimum
-        return successfull_results / 6
-
-
-type ActionUsage = AtWillUsage | LimitedUsage | RechargeUsage
-
-
-@dataclass(kw_only=True, frozen=True, slots=True)
-class DamageRoll:
-    """One damage component of an attack."""
-
-    dice_count: int
-    die_size: int
-    modifier: int = 0
-    damage_type: DamageType
-
-    def average_damage(self) -> float:
-        """Average damage from one damage role."""
-        average_die = (self.die_size + 1) / 2
-
-        return self.dice_count * average_die + self.modifier
-
-
-@dataclass(kw_only=True, frozen=True, slots=True)
-class SavingThrowDamage:
-    """Represent damage resolved through a saving throw instead of attack action."""
-
-    ability: AbilityName
-    difficulty_class: int
-    damage: tuple[DamageRoll, ...]
-    success_outcome: SavingThrowOutcome = "none"
-
-    def average_failed_save(self) -> float:
-        """Return the average damage on a failed save."""
-        return sum(roll.average_damage() for roll in self.damage)
-
-    def average_successful_save(self) -> float:
-        """Return the average damage on a successful save."""
-        if self.success_outcome == "half":
-            return sum(roll.average_damage() for roll in self.damage) / 2
-        return 0.0
-
-
-@dataclass(kw_only=True, frozen=True, slots=True)
-class MonsterAction:
-    """An action availabel to a monster."""
-
-    action_id: str
-    name: str
-    category: ActionCategory
-    origin: ActionOrigin
-
-    timing: ActionTiming = "action"
-    usage: ActionUsage = field(default_factory=AtWillUsage)
-    description: str = ""
-
-
-@dataclass(kw_only=True, frozen=True, slots=True)
-class AttackAction(MonsterAction):
-    """A monster action that deals damage.
-
-    This allows for a single attact that can have different die rolls for different damage types.
-    """
-
-    category: Literal["attack"] = field(
-        default="attack",
-        init=False,
-    )
-
-    attack_range: AttackRange
-    attack_bonus: int
-    damage: tuple[DamageRoll, ...]
-
-    conditions: tuple[ConditionEffect, ...] = ()
-
-    reach_ft: float | None = None
-    reach_m: float | None = None
-    normal_range_ft: float | None = None
-    long_range_ft: float | None = None
-    normal_range_m: float | None = None
-    long_range_m: float | None = None
-
-    def average_damage(self) -> float:
-        """Average damage of the attack."""
-        return sum(damage_roll.average_damage() for damage_roll in self.damage)
-
-
-@dataclass(kw_only=True, frozen=True, slots=True)
-class SavingThrowAction(MonsterAction):
-    """Represent an action resolved with a saving throw."""
-
-    category: Literal["saving_throw"] = field(
-        default="saving_throw",
-        init=False,
-    )
-
-    saving_throw: SavingThrowDamage
-    area_description: str | None = None
-    intended_targets: float = 1.0
+from .attacks import AttackAction
+from .base import MonsterAction
 
 
 @dataclass(kw_only=True, frozen=True, slots=True)
@@ -175,12 +15,6 @@ class ActionUse:
     """Represent repeated use of an action within a routine."""
 
     action_id: str
-    count: int = 1
-
-    def __post_init__(self) -> None:
-        """Validate the action-use count."""
-        if self.count < 1:
-            raise ValueError("Action-use count must be positive")
 
 
 @dataclass(kw_only=True, frozen=True, slots=True)
@@ -214,6 +48,7 @@ class MultiattackAction(MonsterAction):
     )
     base_sequence: tuple[ActionUse, ...]
     substitutions: tuple[ActionSubstitution, ...] = ()
+    description_override: str | None = None
 
     def __post_init__(self) -> None:
         """Validate the existence of a base sequence."""
@@ -239,6 +74,52 @@ class MultiattackAction(MonsterAction):
 
         return tuple(MultiattackRoutine(action_ids=routine) for routine in sorted(routines))
 
+    def generate_multiattack_description(
+        self,
+        *,
+        monster_name: str,
+        unique_monster: bool,
+        actions_by_id: Mapping[str, MonsterAction],
+    ) -> str:
+        """Generate a readable description for a multiattack action.
+
+        Args:
+            monster_name: The name of the monster making the MultiAttack.
+            unique_monster: Whether to use "The" in front of the monster name or not.
+            multiattack: The multiattack action to be described.
+            actions_by_id: Available actions indexed by ID.
+
+        Returns:
+            Generated description of a multiattack.
+
+        """
+        if self.description_override is not None:
+            return self.description_override
+
+        base_names = tuple(
+            actions_by_id[action_use.action_id].name for action_use in self.base_sequence
+        )
+
+        base_description = _describe_ordered_actions(base_names)
+
+        if not unique_monster:
+            monster_name = f"The {monster_name}"
+
+        description = f"{monster_name} makes {len(base_names)} attacks: {base_description}"
+
+        substitution_descriptions = tuple(
+            _describe_substitutions(
+                substitution=substitution,
+                actions_by_id=actions_by_id,
+            )
+            for substitution in self.substitutions
+        )
+
+        if substitution_descriptions:
+            description += " " + " ".join(substitution_descriptions)
+
+        return description
+
     @staticmethod
     def _apply_substitution(
         routines: set[tuple[str, ...]], substitution: ActionSubstitution
@@ -252,6 +133,27 @@ class MultiattackAction(MonsterAction):
                 for index, action_id in enumerate(routine)
                 if action_id == substitution.replaced_action_id
             )
+
+            maximum_replacements = min(substitution.maximum_replacements, len(replaceable_indexes))
+
+            for replacement_count in range(
+                1,
+                maximum_replacements + 1,
+            ):
+                for indexes in combinations(
+                    replaceable_indexes,
+                    replacement_count,
+                ):
+                    for replacements in product(
+                        substitution.replacement_action_ids,
+                        repeat=replacement_count,
+                    ):
+                        updated_routine = list(routine)
+
+                        for index, replacement in zip(indexes, replacements, strict=True):
+                            updated_routine[index] = replacement
+
+                        expanded_routines.add(tuple(updated_routine))
 
             new_routines = MultiattackAction._generate_substitutions(
                 routine=routine, replaceable_indexes=replaceable_indexes, substitution=substitution
@@ -320,48 +222,57 @@ class MultiattackAction(MonsterAction):
         return generated
 
 
-def generate_multiattack_description(
+def calculate_routine_average_damage(
     *,
-    monster_name: str,
-    unique_monster: bool,
-    multiattack: MultiattackAction,
+    routine: MultiattackRoutine,
     actions_by_id: Mapping[str, MonsterAction],
-) -> str:
-    """Generate a readable description for a multiattack action.
+) -> float:
+    """Calculate average damage for one Multiattack routine.
 
     Args:
-        monster_name: The name of the monster making the MultiAttack.
-        unique_monster: Whether to use "The" in front of the monster name or not.
-        multiattack: The multiattack action to be described.
-        actions_by_id: Available actions indexed by ID.
-
-    Returns:
-        Generated description of a multiattack.
+    routine: Concrete action sequence.
+    actions_by_id: Available actions indexed by identifier.
+    Returns: Combined average on-hit damage.
 
     """
-    base_names = tuple(
-        actions_by_id[action_use.action_id].name for action_use in multiattack.base_sequence
+    total_damage = 0.0
+
+    for action_id in routine.action_ids:
+        action = actions_by_id[action_id]
+        if not isinstance(action, AttackAction):
+            raise TypeError(f"Action {action_id!r} is not an AttackAction")
+        total_damage += action.average_damage()
+    return total_damage
+
+
+def find_maximum_damage_routine(
+    *,
+    multiattack: MultiattackAction,
+    actions_by_id: Mapping[str, MonsterAction],
+) -> tuple[MultiattackRoutine, float]:
+    """Return the highest-damage legal Multiattack routine.
+
+    Args:
+        multiattack: Multiattack definition to evaluate.
+        actions_by_id: Available actions indexed by identifier.
+
+    Returns: The highest-damage routine and average damage.
+
+    """
+    routines = multiattack.valid_routines()
+    return max(
+        (
+            (
+                routine,
+                calculate_routine_average_damage(
+                    routine=routine,
+                    actions_by_id=actions_by_id,
+                ),
+            )
+            for routine in routines
+        ),
+        key=lambda result: result[1],
     )
-
-    base_description = _describe_ordered_actions(base_names)
-
-    if not unique_monster:
-        monster_name = f"The {monster_name}"
-
-    description = f"{monster_name} makes {len(base_names)} attacks: {base_description}"
-
-    substitution_descriptions = tuple(
-        _describe_substitutions(
-            substitution=substitution,
-            actions_by_id=actions_by_id,
-        )
-        for substitution in multiattack.substitutions
-    )
-
-    if substitution_descriptions:
-        description += " " + " ".join(substitution_descriptions)
-
-    return description
 
 
 def _describe_ordered_actions(

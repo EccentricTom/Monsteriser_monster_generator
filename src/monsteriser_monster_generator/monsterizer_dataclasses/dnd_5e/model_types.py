@@ -33,23 +33,7 @@ type MonsterType = Literal[
     "Undead",
 ]
 
-# Combat types
-
-type DamageType = Literal[
-    "acid",
-    "bludgeoning",
-    "cold",
-    "fire",
-    "force",
-    "lightning",
-    "necrotic",
-    "piercing",
-    "poison",
-    "psychic",
-    "radiant",
-    "slashing",
-    "thunder",
-]
+# Action types
 
 type ActionTiming = Literal[
     "action",
@@ -58,6 +42,28 @@ type ActionTiming = Literal[
     "legendary_action",
 ]
 
+type ActionCategory = Literal[
+    "attack",
+    "multiattack",
+    "special",
+    "spellcasting",
+    "saving_throw",
+]
+
+type ActionOrigin = Literal[
+    "natural",
+    "gear",
+    "spell",
+    "special",
+    "custom",
+]
+
+type AttackRange = Literal[
+    "melee",
+    "ranged",
+]
+
+
 type AbilityName = Literal[
     "strength",
     "dexterity",
@@ -65,6 +71,15 @@ type AbilityName = Literal[
     "intelligence",
     "wisdom",
     "charisma",
+]
+
+type AbilityModifierName = Literal[
+    "strength_modifier",
+    "dexterity_modifier",
+    "constitution_modifier",
+    "charisma_modifier",
+    "wisdom_modifier",
+    "intelligence_modifier",
 ]
 
 type SavingThrowOutcome = Literal[
@@ -80,21 +95,23 @@ type RechargeValue = Literal[
     6,
 ]
 
-type AttackRange = Literal[
-    "melee",
-    "ranged",
-]
+# Damage and conditions
 
-type WeaponType = Literal[
-    "melee",
-    "ranged",
-]
 
-type WeaponAttackMode = Literal[
-    "melee_one_handed",
-    "melee_two_handed",
-    "ranged",
-    "thrown",
+type DamageType = Literal[
+    "acid",
+    "bludgeoning",
+    "cold",
+    "fire",
+    "force",
+    "lightning",
+    "necrotic",
+    "piercing",
+    "poison",
+    "psychic",
+    "radiant",
+    "slashing",
+    "thunder",
 ]
 
 type ConditionName = Literal[
@@ -113,17 +130,20 @@ type ConditionName = Literal[
     "unconscious",
 ]
 
-
-@dataclass(kw_only=True, frozen=True, slots=True)
-class ConditionEffect:
-    """Represent a condition imposed by an ability."""
-
-    condition: ConditionName
-    duration: str
-    escape_difficulty_class: int | None = None
+# Gear Types
 
 
-# Gear types
+type WeaponType = Literal[
+    "melee",
+    "ranged",
+]
+
+type WeaponAttackMode = Literal[
+    "melee_one_handed",
+    "melee_two_handed",
+    "ranged",
+    "thrown",
+]
 
 type GearType = Literal[
     "armor",
@@ -156,6 +176,16 @@ type WeaponProperty = Literal[
     "two-handed",
     "versatile",
 ]
+
+
+@dataclass(kw_only=True, frozen=True, slots=True)
+class ConditionEffect:
+    """Represent a condition imposed by an ability."""
+
+    condition: ConditionName
+    duration: str
+    escape_difficulty_class: int | None = None
+
 
 # Reference data structures (Typed Dictionaries)
 
