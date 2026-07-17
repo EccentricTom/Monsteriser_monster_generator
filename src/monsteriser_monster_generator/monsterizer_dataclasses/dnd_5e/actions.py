@@ -6,9 +6,16 @@ from dataclasses import dataclass, field
 from itertools import combinations, product
 from typing import Literal
 
-from .model_types import DamageType
+from .model_types import (
+    AbilityName,
+    ActionTiming,
+    ConditionEffect,
+    DamageType,
+    RechargeValue,
+    SavingThrowOutcome,
+)
 
-type ActionCategory = Literal["attack", "multiattack", "special", "spellcasting"]
+type ActionCategory = Literal["attack", "multiattack", "special", "spellcasting", "saving_throw"]
 
 type AttackRange = Literal["melee", "ranged", "melee_or_range"]
 
@@ -18,6 +25,55 @@ type ActionOrigin = Literal[
     "special",
     "custom",
 ]
+
+
+@dataclass(kw_only=True, frozen=True, slots=True)
+class AtWillUsage:
+    """Represent an ability that can be used at will."""
+
+    usage_type: Literal["at_will"] = field(
+        default="at_will",
+        init=False,
+    )
+
+
+@dataclass(kw_only=True, frozen=True, slots=True)
+class LimitedUsage:
+    """Repesent an ability that has a limited number of uses."""
+
+    uses: int
+    period: Literal["day", "rest"]
+
+    usage_type: Literal["limited"] = field(
+        default="limited",
+        init=False,
+    )
+
+    def __post_init__(self) -> None:
+        """Validate that the ability can be used at least once."""
+        if self.uses < 1:
+            raise ValueError("Limited use ability need to be usuable at least once.")
+
+
+@dataclass(kw_only=True, frozen=True, slots=True)
+class RechargeUsage:
+    """Represent an ability that recharges on specified d6 results."""
+
+    recharge_minimum: RechargeValue
+
+    usage_type: Literal["recharge"] = field(
+        default="recharge",
+        init=False,
+    )
+
+    @property
+    def recharge_probability(self) -> float:
+        """Return the probability of recharging on a d6 roll."""
+        successfull_results = 7 - self.recharge_minimum
+        return successfull_results / 6
+
+
+type ActionUsage = AtWillUsage | LimitedUsage | RechargeUsage
 
 
 @dataclass(kw_only=True, frozen=True, slots=True)
@@ -37,6 +93,26 @@ class DamageRoll:
 
 
 @dataclass(kw_only=True, frozen=True, slots=True)
+class SavingThrowDamage:
+    """Represent damage resolved through a saving throw instead of attack action."""
+
+    ability: AbilityName
+    difficulty_class: int
+    damage: tuple[DamageRoll, ...]
+    success_outcome: SavingThrowOutcome = "none"
+
+    def average_failed_save(self) -> float:
+        """Return the average damage on a failed save."""
+        return sum(roll.average_damage() for roll in self.damage)
+
+    def average_successful_save(self) -> float:
+        """Return the average damage on a successful save."""
+        if self.success_outcome == "half":
+            return sum(roll.average_damage() for roll in self.damage) / 2
+        return 0.0
+
+
+@dataclass(kw_only=True, frozen=True, slots=True)
 class MonsterAction:
     """An action availabel to a monster."""
 
@@ -44,6 +120,9 @@ class MonsterAction:
     name: str
     category: ActionCategory
     origin: ActionOrigin
+
+    timing: ActionTiming = "action"
+    usage: ActionUsage = field(default_factory=AtWillUsage)
     description: str = ""
 
 
@@ -54,10 +133,17 @@ class AttackAction(MonsterAction):
     This allows for a single attact that can have different die rolls for different damage types.
     """
 
-    category: Literal["attack"] = field(default="attack", init=False)
+    category: Literal["attack"] = field(
+        default="attack",
+        init=False,
+    )
+
     attack_range: AttackRange
     attack_bonus: int
     damage: tuple[DamageRoll, ...]
+
+    conditions: tuple[ConditionEffect, ...] = ()
+
     reach_ft: float | None = None
     reach_m: float | None = None
     normal_range_ft: float | None = None
@@ -68,6 +154,20 @@ class AttackAction(MonsterAction):
     def average_damage(self) -> float:
         """Average damage of the attack."""
         return sum(damage_roll.average_damage() for damage_roll in self.damage)
+
+
+@dataclass(kw_only=True, frozen=True, slots=True)
+class SavingThrowAction(MonsterAction):
+    """Represent an action resolved with a saving throw."""
+
+    category: Literal["saving_throw"] = field(
+        default="saving_throw",
+        init=False,
+    )
+
+    saving_throw: SavingThrowDamage
+    area_description: str | None = None
+    intended_targets: float = 1.0
 
 
 @dataclass(kw_only=True, frozen=True, slots=True)
