@@ -1,6 +1,7 @@
 """Define actions available to monsters."""
 
 from dataclasses import dataclass, field
+from itertools import combinations, product
 from typing import Literal
 
 from .model_types import DamageType
@@ -81,12 +82,137 @@ class ActionUse:
 
 
 @dataclass(kw_only=True, frozen=True, slots=True)
+class ActionSubstitution:
+    """Describe permitted substitutions in a Multiattack action."""
+
+    replaced_action_id: str
+    replacement_action_ids: tuple[str, ...]
+    maximum_replacements: int = 1
+
+    def __post_init__(self) -> None:
+        """Validate the substitution role."""
+        if self.maximum_replacements < 1:
+            raise ValueError("A substitution must provide at least one replacement.")
+
+
+@dataclass(kw_only=True, frozen=True, slots=True)
+class MultiattackRoutine:
+    """Represent one concrete, valid Multiattack sequence."""
+
+    action_ids: tuple[str, ...]
+
+
+@dataclass(kw_only=True, frozen=True, slots=True)
 class MultiattackAction(MonsterAction):
-    """Represent a fixed combination of attacks in one action."""
+    """Represent an ordered sequence of attacks with substitutions."""
 
     category: Literal["multiattack"] = field(
         default="multiattack",
         init=False,
     )
-    origin: Literal["natural", "special", "custom"] = "natural"
-    action_uses: tuple[ActionUse, ...]
+    base_sequence: tuple[ActionUse, ...]
+    substitutions: tuple[ActionSubstitution, ...] = ()
+
+    def __post_init__(self) -> None:
+        """Validate the existence of a base sequence."""
+        if not self.base_sequence:
+            raise ValueError("Multiattack should contain at least one action.")
+
+    def valid_routines(self) -> tuple[MultiattackRoutine, ...]:
+        """Return every valid routine permitted by this multiattack.
+
+        Returns:
+            All valid multiattack routines in tuple form.
+
+        """
+        routines: set[tuple[str, ...]] = {
+            tuple(action_use.action_id for action_use in self.base_sequence)
+        }
+
+        for substitution in self.substitutions:
+            routines = self._apply_substitution(
+                routines,
+                substitution,
+            )
+
+        return tuple(MultiattackRoutine(action_ids=routine) for routine in sorted(routines))
+
+    @staticmethod
+    def _apply_substitution(
+        routines: set[tuple[str, ...]], substitution: ActionSubstitution
+    ) -> set[tuple[str, ...]]:
+        """Apply one substitution rule to a collection of routines."""
+        expanded_routines = set(routines)
+
+        for routine in routines:
+            replaceable_indexes = tuple(
+                index
+                for index, action_id in enumerate(routine)
+                if action_id == substitution.replaced_action_id
+            )
+
+            new_routines = MultiattackAction._generate_substitutions(
+                routine=routine, replaceable_indexes=replaceable_indexes, substitution=substitution
+            )
+            expanded_routines.update(new_routines)
+
+        return expanded_routines
+
+    @staticmethod
+    def _generate_substitutions(
+        *,
+        routine: tuple[str, ...],
+        replaceable_indexes: tuple[int, ...],
+        substitution: ActionSubstitution,
+    ) -> set[tuple[str, ...]]:
+        """Generate valid routines for one substitution rule."""
+        generated: set[tuple[str, ...]] = set()
+
+        for replacement_count in range(
+            1,
+            min(
+                substitution.maximum_replacements,
+                len(
+                    replaceable_indexes,
+                ),
+            )
+            + 1,
+        ):
+            generated.update(
+                MultiattackAction._replace_actions(
+                    routine=routine,
+                    replaceable_indexes=replaceable_indexes,
+                    replacement_action_ids=(substitution.replacement_action_ids),
+                    replacement_count=replacement_count,
+                )
+            )
+
+        return generated
+
+    @staticmethod
+    def _replace_actions(
+        *,
+        routine: tuple[str, ...],
+        replaceable_indexes: tuple[int, ...],
+        replacement_action_ids: tuple[str, ...],
+        replacement_count: int,
+    ) -> set[tuple[str, ...]]:
+        """Return routines with selected actions replaced."""
+        generated: set[tuple[str, ...]] = set()
+
+        for indexes in combinations(
+            replaceable_indexes,
+            replacement_count,
+        ):
+            for replacements in product(
+                replacement_action_ids,
+                repeat=replacement_count,
+            ):
+                updated_routine = list(routine)
+
+                for index, replacement in zip(indexes, replacements, strict=True):
+                    updated_routine[index] = replacement
+
+                generated.add(tuple(updated_routine))
+
+        return generated
