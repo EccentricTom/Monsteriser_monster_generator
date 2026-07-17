@@ -1,5 +1,6 @@
 """Define shared types used by monster data models."""
 
+from dataclasses import dataclass
 from typing import Literal, NotRequired, TypedDict
 
 # Monster sizes
@@ -50,9 +51,33 @@ type DamageType = Literal[
     "thunder",
 ]
 
+type ActionTiming = Literal[
+    "action",
+    "bonus_action",
+    "reaction",
+    "legendary_action",
+]
+
 type AbilityName = Literal[
     "strength",
     "dexterity",
+    "constitution",
+    "intelligence",
+    "wisdom",
+    "charisma",
+]
+
+type SavingThrowOutcome = Literal[
+    "none",
+    "half",
+]
+
+type RechargeValue = Literal[
+    2,
+    3,
+    4,
+    5,
+    6,
 ]
 
 type AttackRange = Literal[
@@ -72,6 +97,32 @@ type WeaponAttackMode = Literal[
     "thrown",
 ]
 
+type ConditionName = Literal[
+    "blinded",
+    "charmed",
+    "deafened",
+    "frightened",
+    "grappled",
+    "incapacitated",
+    "invisible",
+    "paralyzed",
+    "poisoned",
+    "prone",
+    "restrained",
+    "stunned",
+    "unconscious",
+]
+
+
+@dataclass(kw_only=True, frozen=True, slots=True)
+class ConditionEffect:
+    """Represent a condition imposed by an ability."""
+
+    condition: ConditionName
+    duration: str
+    escape_difficulty_class: int | None = None
+
+
 # Gear types
 
 type GearType = Literal[
@@ -79,9 +130,20 @@ type GearType = Literal[
     "shield",
     "weapon",
 ]
-type GearCategory = Literal["light", "medium", "heavy", "simple", "martial", "shield"]
+type GearCategory = Literal[
+    "light",
+    "medium",
+    "heavy",
+    "simple",
+    "martial",
+    "shield",
+]
 
-type CurrencyDenomination = Literal["copper", "silver", "gold"]
+type CurrencyDenomination = Literal[
+    "copper",
+    "silver",
+    "gold",
+]
 
 type WeaponProperty = Literal[
     "ammunition",
