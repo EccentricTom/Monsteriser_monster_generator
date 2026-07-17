@@ -3,7 +3,7 @@
 from dataclasses import dataclass, replace
 from typing import Literal
 
-from .actions_complete import AttackAction, DamageRoll
+from .actions import AttackAction, DamageRoll
 from .model_types import AttackRange, DamageType
 
 type AbilityModifierName = Literal[
