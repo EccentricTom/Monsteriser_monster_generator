@@ -61,6 +61,7 @@ type ActionOrigin = Literal[
 type AttackRange = Literal[
     "melee",
     "ranged",
+    "melee_or_ranged",
 ]
 
 

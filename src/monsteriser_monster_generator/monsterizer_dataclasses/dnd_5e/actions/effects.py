@@ -32,6 +32,26 @@ class DamageRoll:
 
         return self.dice_count * average_die + self.modifier
 
+    def average_damage_integer(self) -> int:
+        """Average damage from one damage roll in integer form."""
+        return int(self.average_damage())
+
+    def dice_expression(self) -> str:
+        """Return the damage dice in stat-block notation."""
+        expression = f"{self.dice_count}d{self.die_size}"
+
+        if self.modifier > 0:
+            return f"{expression} + {self.modifier}"
+        if self.modifier < 0:
+            return f"{expression} - {self.modifier}"
+        return expression
+
+    def stat_block_text(self) -> str:
+        """Generate the text entry for the stat block."""
+        damage_name = self.damage_type.capitalize()
+
+        return f"{self.average_damage_integer()} {self.dice_expression()} {damage_name} damage"
+
 
 @dataclass(kw_only=True, frozen=True, slots=True)
 class ConditionEffect:
