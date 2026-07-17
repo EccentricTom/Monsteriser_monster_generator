@@ -1,5 +1,7 @@
 """Define actions available to monsters."""
 
+from collections import Counter
+from collections.abc import Mapping
 from dataclasses import dataclass, field
 from itertools import combinations, product
 from typing import Literal
@@ -216,3 +218,130 @@ class MultiattackAction(MonsterAction):
                 generated.add(tuple(updated_routine))
 
         return generated
+
+
+def generate_multiattack_description(
+    *,
+    monster_name: str,
+    unique_monster: bool,
+    multiattack: MultiattackAction,
+    actions_by_id: Mapping[str, MonsterAction],
+) -> str:
+    """Generate a readable description for a multiattack action.
+
+    Args:
+        monster_name: The name of the monster making the MultiAttack.
+        unique_monster: Whether to use "The" in front of the monster name or not.
+        multiattack: The multiattack action to be described.
+        actions_by_id: Available actions indexed by ID.
+
+    Returns:
+        Generated description of a multiattack.
+
+    """
+    base_names = tuple(
+        actions_by_id[action_use.action_id].name for action_use in multiattack.base_sequence
+    )
+
+    base_description = _describe_ordered_actions(base_names)
+
+    if not unique_monster:
+        monster_name = f"The {monster_name}"
+
+    description = f"{monster_name} makes {len(base_names)} attacks: {base_description}"
+
+    substitution_descriptions = tuple(
+        _describe_substitutions(
+            substitution=substitution,
+            actions_by_id=actions_by_id,
+        )
+        for substitution in multiattack.substitutions
+    )
+
+    if substitution_descriptions:
+        description += " " + " ".join(substitution_descriptions)
+
+    return description
+
+
+def _describe_ordered_actions(
+    action_names: tuple[str, ...],
+) -> str:
+    """Describe an ordered collection of action names."""
+    if len(action_names) == 1:
+        return f"one {action_names[0]} attack"
+
+    counted_names = Counter(action_names)
+
+    # Use a compact count-based description when identical actions
+    # are grouped together in the sequence.
+    parts: list[str] = []
+    seen: set[str] = set()
+
+    for action_name in action_names:
+        if action_name in seen:
+            continue
+
+        seen.add(action_name)
+        count = counted_names[action_name]
+        count_text = _number_word(count)
+
+        attack_text = "attack" if count == 1 else "attacks"
+        parts.append(f"{count_text} {action_name} {attack_text}")
+
+    if len(parts) == 1:
+        return parts[0]
+
+    if len(parts) == 2:
+        return f"{parts[0]} and {parts[1]}"
+
+    return f"{', '.join(parts[:-1])}, and {parts[-1]}"
+
+
+def _describe_substitutions(
+    *,
+    substitution: ActionSubstitution,
+    actions_by_id: Mapping[str, MonsterAction],
+) -> str:
+    """Describe one substitution rule."""
+    replaced_name = actions_by_id[substitution.replaced_action_id].name
+
+    replacement_names = tuple(
+        actions_by_id[action_id].name for action_id in substitution.replacement_action_ids
+    )
+
+    replacement_text = _join_names(replacement_names)
+
+    if substitution.maximum_replacements == 1:
+        return f"It can replace one {replaced_name} attack with {replacement_text}."
+
+    return (
+        f"It can replace up to "
+        f"{substitution.maximum_replacements} "
+        f"{replaced_name} attacks with {replacement_text}."
+    )
+
+
+def _join_names(names: tuple[str, ...]) -> str:
+    """Join names into readable prose."""
+    if len(names) == 1:
+        return f"a {names[0]} attack"
+
+    if len(names) == 2:
+        return f"a {names[0]} or {names[1]} attack"
+
+    return f"one of its {', '.join(names[:-1])}, or {names[-1]} attacks"
+
+
+def _number_word(number: int) -> str:
+    """Return a readable number for an attack count."""
+    number_words = {
+        1: "one",
+        2: "two",
+        3: "three",
+        4: "four",
+        5: "five",
+        6: "six",
+    }
+
+    return number_words.get(number, str(number))
