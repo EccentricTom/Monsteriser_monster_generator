@@ -4,9 +4,10 @@ from dataclasses import dataclass, field
 
 from dataclasses_json import dataclass_json
 
+from .actions import MonsterAction
 from .damage_adjustments import Immunity, Resistance, Vulnerability
 from .gear import Gear
-from .model_types import MonsterSize
+from .model_types import ActionTiming, MonsterSize
 
 
 @dataclass_json
@@ -34,14 +35,13 @@ class BaseMonster:
     is_legendary: bool = field(default=False)
     innate_spellcasting: bool = field(default=False)
 
-    traits: list[str] = field(default_factory=list)
-    actions: list[str] = field(default_factory=list)
-    bonus_actions: list[str] = field(default_factory=list)
-    gear: list[Gear] = field(default_factory=list)
+    traits: list[str] = field(default_factory=list[str])
+    abilities: list[MonsterAction] = field(default_factory=list[MonsterAction])
+    gear: list[Gear] = field(default_factory=list[Gear])
 
-    resistances: list[Resistance] = field(default_factory=list)
-    immunities: list[Immunity] = field(default_factory=list)
-    vulnerabilities: list[Vulnerability] = field(default_factory=list)
+    resistances: list[Resistance] = field(default_factory=list[Resistance])
+    immunities: list[Immunity] = field(default_factory=list[Immunity])
+    vulnerabilities: list[Vulnerability] = field(default_factory=list[Vulnerability])
 
     armor_class: int = field(init=False)
     current_cr: float = field(init=False)
@@ -71,3 +71,22 @@ class BaseMonster:
 
         """
         return (ability_score - 10) // 2
+
+    def get_abilities_by_timing(
+        self,
+        timing: ActionTiming,
+    ) -> tuple[MonsterAction, ...]:
+        """Return abilities matching an action-economy timing.
+
+        Args:
+            timing: Action timing to retrieve.
+
+        Returns:
+            Abilities matching the requested timing.
+
+        """
+        return tuple(ability for ability in self.abilities if ability.timing == timing)
+
+    def get_abilities_by_id(self) -> dict[str, MonsterAction]:
+        """Return abilities indexed by identifier."""
+        return {ability.action_id: ability for ability in self.abilities}

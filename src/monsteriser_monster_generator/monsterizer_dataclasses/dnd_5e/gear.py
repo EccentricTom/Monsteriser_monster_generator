@@ -189,6 +189,7 @@ class Weapon(Gear):
             action_id=action_id or self._default_action_id(mode),
             name=action_name or name,
             origin="gear",
+            timing="action",
             attack_range=attack_range,
             attack_bonus=attack_bonus,
             reach_ft=self._get_reach_ft(mode),

@@ -69,3 +69,14 @@ def is_recommended_natural_attack(
 
     """
     return template in RECOMMENDED_NATURAL_ATTACKS[monster_type]
+
+
+def get_all_natural_attack_templates() -> tuple[NaturalAttackTemplate, ...]:
+    """Return all unique natural attack templates."""
+    templates_by_id: dict[str, NaturalAttackTemplate] = {}
+
+    for templates in RECOMMENDED_NATURAL_ATTACKS.values():
+        for template in templates:
+            templates_by_id[template.template_id] = template
+
+    return tuple(templates_by_id.values())

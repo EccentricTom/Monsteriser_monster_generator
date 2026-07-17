@@ -1,19 +1,9 @@
 """Define resuable templates for monster actions."""
 
 from dataclasses import dataclass, replace
-from typing import Literal
 
 from .actions import AttackAction, DamageRoll
-from .model_types import AttackRange, DamageType
-
-type AbilityModifierName = Literal[
-    "strength_modifier",
-    "dexterity_modifier",
-    "constitution_modifier",
-    "charisma_modifier",
-    "wisdom_modifier",
-    "intelligence_modifier",
-]
+from .model_types import AbilityModifierName, ActionTiming, AttackRange, DamageType
 
 
 @dataclass(kw_only=True, frozen=True, slots=True)
@@ -58,6 +48,8 @@ class NaturalAttackTemplate:
     attack_range: AttackRange
     ability_modifier: AbilityModifierName
     damage: tuple[DamageTemplate, ...]
+
+    timing: ActionTiming = "action"
 
     reach_ft: float | None = None
     reach_m: float | None = None
