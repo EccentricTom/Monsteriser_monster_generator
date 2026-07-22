@@ -2,9 +2,9 @@
 
 from dataclasses import dataclass
 
-from .action_catalog import is_recommended_natural_attack
-from .action_template import NaturalAttackTemplate
-from .model_types import MonsterType
+from ..catalogs.action_catalog import is_recommended_natural_attack
+from ..catalogs.action_template import NaturalAttackTemplate
+from ..models.model_types import MonsterType
 
 
 @dataclass(kw_only=True, frozen=True, slots=True)

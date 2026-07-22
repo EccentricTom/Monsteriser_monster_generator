@@ -2,8 +2,8 @@
 
 from dataclasses import dataclass, replace
 
-from .actions import AttackAction, DamageRoll
-from .model_types import AbilityModifierName, ActionTiming, AttackRange, DamageType
+from ..models.actions import AttackAction, DamageRoll
+from ..models.model_types import AbilityModifierName, ActionTiming, AttackRange, DamageType
 
 
 @dataclass(kw_only=True, frozen=True, slots=True)

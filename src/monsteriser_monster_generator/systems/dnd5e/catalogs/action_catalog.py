@@ -1,7 +1,7 @@
 """Associate recommended natural attacks with monster types."""
 
+from ..models.model_types import MonsterType
 from .action_template import BITE, CLAW, SLAM, TENTACLE, NaturalAttackTemplate
-from .model_types import MonsterType
 
 RECOMMENDED_NATURAL_ATTACKS: dict[MonsterType, tuple[NaturalAttackTemplate, ...]] = {
     "Aberration": (BITE, CLAW, TENTACLE),

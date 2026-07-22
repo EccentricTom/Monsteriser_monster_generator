@@ -1,6 +1,6 @@
 """Start page for the monster generator."""
 
-from nicegui import APIRouter, app, ui
+from nicegui import APIRouter, ui
 
 from src.nicegui_formatting import theme_main
 

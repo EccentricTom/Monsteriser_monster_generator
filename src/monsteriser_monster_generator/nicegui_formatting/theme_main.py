@@ -2,13 +2,12 @@
 
 from contextlib import contextmanager
 
-from nicegui import app, context, ui
+from nicegui import context, ui
 
 
 @contextmanager
 def theme_frame(navtitle: str, session: bool = False):
-    """
-    Create a default theme for the application.
+    """Create a default theme for the application.
 
     Args:
     navtitle: The name of the page
