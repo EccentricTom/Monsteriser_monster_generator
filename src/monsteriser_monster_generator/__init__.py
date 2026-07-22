@@ -1,0 +1,1 @@
+"""Monsteriser monster generator package."""
