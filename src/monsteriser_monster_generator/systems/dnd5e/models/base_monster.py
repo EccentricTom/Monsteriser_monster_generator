@@ -88,5 +88,20 @@ class BaseMonster:
         return tuple(ability for ability in self.abilities if ability.timing == timing)
 
     def get_abilities_by_id(self) -> dict[str, MonsterAction]:
-        """Return abilities indexed by identifier."""
-        return {ability.action_id: ability for ability in self.abilities}
+        """Return abilities indexed by identifier.
+
+        Returns:
+            Abilities mapped by their unique action identifiers.
+
+        Raises:
+            ValueError: If multiple abilities use the same identifier.
+
+        """
+        abilities_by_id: dict[str, MonsterAction] = {}
+
+        for ability in self.abilities:
+            if ability.action_id in abilities_by_id:
+                raise ValueError(f"Duplicate action identifier: {ability.action_id!r}")
+            abilities_by_id[ability.action_id] = ability
+
+        return abilities_by_id
