@@ -9,7 +9,8 @@ from ..models.actions import (
     SavingThrowAction,
     find_maximum_damage_routine,
 )
-from .combat_routines import TurnRoutine
+from ..models.base_monster import BaseMonster
+from .combat_routines import TurnRoutine, generate_turn_routines
 
 
 def calculate_action_average_damage(
@@ -115,4 +116,25 @@ def find_maximum_damage_turn(
             for routine in routines
         ),
         key=lambda result: result[1],
+    )
+
+
+def find_monster_maximum_damage_turn(
+    monster: BaseMonster,
+) -> tuple[TurnRoutine, float]:
+    """Return a monster's highest-damage basic turn.
+
+    Args:
+        monster: Monster whose available turns are evaluated.
+
+    Returns:
+        Highest-damage legal turn and its raw average damage.
+
+    """
+    actions_by_id = monster.get_abilities_by_id()
+    routines = generate_turn_routines(monster)
+
+    return find_maximum_damage_turn(
+        routines=routines,
+        actions_by_id=actions_by_id,
     )
