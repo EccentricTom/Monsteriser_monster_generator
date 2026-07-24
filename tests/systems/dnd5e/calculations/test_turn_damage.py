@@ -1,0 +1,270 @@
+"""Calculate the raw average damage for D&D 5E 2024 monster actions for all attacks in a turn."""
+
+from pytest import raises
+
+from monsteriser_monster_generator.systems.dnd5e.calculations import (
+    TurnRoutine,
+    calculate_turn_routine_damage,
+    find_maximum_damage_turn,
+    find_monster_maximum_damage_turn,
+)
+from monsteriser_monster_generator.systems.dnd5e.models.actions import (
+    AttackAction,
+    DamageRoll,
+    FixedActionUse,
+    MonsterAction,
+    MultiattackAction,
+)
+from monsteriser_monster_generator.systems.dnd5e.models.base_monster import (
+    BaseMonster,
+)
+from monsteriser_monster_generator.systems.dnd5e.models.model_types import (
+    ActionTiming,
+)
+
+
+def create_attack(
+    *,
+    action_id: str,
+    dice_count: int = 1,
+    die_size: int = 4,
+    modifier: int = 0,
+    timing: ActionTiming = "action",
+) -> AttackAction:
+    """Create a configured attack for damage tests.
+
+    Args:
+        action_id: Unique identifier for the attack action.
+        dice_count: the number of damage dice.
+        die_size: the size of the damage dice, between 4 and 20.
+        modifier: the flat damage modifier.
+        timing: Action economy timing of the attack, either action or bonus_action
+
+    Returns:
+        A configured melee attack.
+
+    """
+    return AttackAction(
+        action_id=action_id,
+        name=action_id.replace("_", " ").title(),
+        origin="natural",
+        timing=timing,
+        attack_range="melee",
+        attack_bonus=5,
+        reach_ft=5,
+        damage=(
+            DamageRoll(
+                dice_count=dice_count,
+                die_size=die_size,
+                modifier=modifier,
+                damage_type="slashing",
+            ),
+        ),
+    )
+
+
+def test_calculate_turn_routine_damage_adds_bonus_action() -> None:
+    """Add bonus-action damage to primary-action damage."""
+    bite = create_attack(action_id="bite", dice_count=2, die_size=6, modifier=3)
+
+    quick_claw = create_attack(
+        action_id="quick_claw",
+        dice_count=1,
+        die_size=4,
+        modifier=3,
+        timing="bonus_action",
+    )
+
+    routine = TurnRoutine(
+        primary_action_id="bite",
+        bonus_action_id="quick_claw",
+    )
+
+    actions_by_id: dict[str, MonsterAction] = {
+        bite.action_id: bite,
+        quick_claw.action_id: quick_claw,
+    }
+
+    result = calculate_turn_routine_damage(
+        routine=routine,
+        actions_by_id=actions_by_id,
+    )
+
+    assert result == 15.5
+
+
+def test_find_maximum_damage_turn_returns_strongest_routine() -> None:
+    """Return the legal attack routine with the strongest average damage."""
+    bite = create_attack(
+        action_id="bite",
+        dice_count=1,
+        die_size=8,
+        modifier=3,
+    )
+    claw = create_attack(
+        action_id="claw",
+        dice_count=1,
+        die_size=6,
+        modifier=3,
+    )
+    quick_claw = create_attack(
+        action_id="quick_claw",
+        dice_count=1,
+        die_size=4,
+        modifier=3,
+        timing="bonus_action",
+    )
+
+    multiattack = MultiattackAction(
+        action_id="multiattack",
+        name="Multiattack",
+        origin="natural",
+        steps=(
+            FixedActionUse(
+                action_id="bite",
+            ),
+            FixedActionUse(
+                action_id="claw",
+            ),
+        ),
+    )
+
+    routines = (
+        TurnRoutine(primary_action_id="bite"),
+        TurnRoutine(
+            primary_action_id="bite",
+            bonus_action_id="quick_claw",
+        ),
+        TurnRoutine(primary_action_id="multiattack"),
+        TurnRoutine(
+            primary_action_id="multiattack",
+            bonus_action_id="quick_claw",
+        ),
+    )
+
+    actions_by_id: dict[str, MonsterAction] = {
+        bite.action_id: bite,
+        claw.action_id: claw,
+        multiattack.action_id: multiattack,
+        quick_claw.action_id: quick_claw,
+    }
+
+    routine, damage = find_maximum_damage_turn(routines=routines, actions_by_id=actions_by_id)
+
+    assert routine == TurnRoutine(
+        primary_action_id="multiattack",
+        bonus_action_id="quick_claw",
+    )
+    assert damage == 19.5
+
+
+def test_find_maximum_damage_turn_raises_for_empty_routine() -> None:
+    """Reject maximum-damage calculation without turn routines."""
+    with raises(
+        ValueError,
+        match="No turn routines were provided",
+    ):
+        find_maximum_damage_turn(
+            routines=(),
+            actions_by_id={},
+        )
+
+
+def test_calculate_turn_routine_damage_raises_for_unknown_primary_action() -> None:
+    """Raises KeyError for an unknown primary action identifier."""
+    routine = TurnRoutine(primary_action_id="missing_action")
+
+    with raises(KeyError, match="missing_action"):
+        calculate_turn_routine_damage(
+            routine=routine,
+            actions_by_id={},
+        )
+
+
+def test_calculate_turn_routine_damage_raises_for_unknown_bonus_action() -> None:
+    """Raise KeyError for an unknown bonus-action identifier."""
+    bite = create_attack(action_id="bite")
+
+    routine = TurnRoutine(
+        primary_action_id="bite",
+        bonus_action_id="missing_bonus_action",
+    )
+
+    actions_by_id: dict[str, MonsterAction] = {
+        bite.action_id: bite,
+    }
+
+    with raises(KeyError, match="missing_bonus_action"):
+        calculate_turn_routine_damage(
+            routine=routine,
+            actions_by_id=actions_by_id,
+        )
+
+
+def test_find_monster_maximum_damage_turn_builds_dependencies() -> None:
+    """Generate mappings and routines when evaluating a monster."""
+    bite = create_attack(
+        action_id="bite",
+        dice_count=1,
+        die_size=8,
+        modifier=3,
+    )
+    claw = create_attack(
+        action_id="claw",
+        dice_count=1,
+        die_size=6,
+        modifier=3,
+    )
+    quick_claw = create_attack(
+        action_id="quick_claw",
+        dice_count=1,
+        die_size=4,
+        modifier=3,
+        timing="bonus_action",
+    )
+
+    multiattack = MultiattackAction(
+        action_id="multiattack",
+        name="Multiattack",
+        origin="natural",
+        steps=(
+            FixedActionUse(
+                action_id="bite",
+            ),
+            FixedActionUse(
+                action_id="claw",
+            ),
+        ),
+    )
+
+    monster = BaseMonster(
+        name="Wolf",
+        abilities=[
+            bite,
+            claw,
+            quick_claw,
+            multiattack,
+        ],
+    )
+
+    routine, damage = find_monster_maximum_damage_turn(monster)
+
+    assert routine == TurnRoutine(
+        primary_action_id="multiattack",
+        bonus_action_id="quick_claw",
+    )
+
+    assert damage == 19.5
+
+
+def test_find_monster_maximum_damage_turn_rejects_no_primary_actions() -> None:
+    """Reject damage evaluation when no turn routines exist."""
+    monster = BaseMonster(
+        name="Passive Wolf",
+    )
+
+    with raises(
+        ValueError,
+        match="No turn routines were provided",
+    ):
+        find_monster_maximum_damage_turn(monster)
