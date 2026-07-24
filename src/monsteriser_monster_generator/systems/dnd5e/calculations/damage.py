@@ -6,8 +6,8 @@ from ..models.actions import (
     AttackAction,
     MonsterAction,
     MultiattackAction,
+    MultiattackRoutine,
     SavingThrowAction,
-    find_maximum_damage_routine,
 )
 from ..models.base_monster import BaseMonster
 from .combat_routines import TurnRoutine, generate_turn_routines
@@ -35,7 +35,7 @@ def calculate_action_average_damage(
         return action.average_damage()
 
     if isinstance(action, MultiattackAction):
-        _, maximum_damage = find_maximum_damage_routine(
+        _, maximum_damage = find_maximum_damage_multiattack_routine(
             multiattack=action,
             actions_by_id=actions_by_id,
         )
@@ -137,4 +137,88 @@ def find_monster_maximum_damage_turn(
     return find_maximum_damage_turn(
         routines=routines,
         actions_by_id=actions_by_id,
+    )
+
+
+def calculate_routine_average_damage(
+    *,
+    routine: MultiattackRoutine,
+    actions_by_id: Mapping[str, MonsterAction],
+) -> float:
+    """Calculate average damage for one Multiattack routine.
+
+    Args:
+        routine: Concrete action sequence.
+        actions_by_id: Available actions indexed by identifier.
+
+    Returns:
+        Combined average on-hit damage.
+
+    Raises:
+        TypeError: If a referenced ability is not an attack.
+
+    """
+    total_damage = 0.0
+
+    for action_id in routine.action_ids:
+        action = actions_by_id[action_id]
+        if not isinstance(action, AttackAction):
+            raise TypeError(f"Action {action_id!r} is not an AttackAction")
+        total_damage += action.average_damage()
+    return total_damage
+
+
+def calculate_multiattack_routine_damage(
+    *,
+    routine: MultiattackRoutine,
+    actions_by_id: Mapping[str, MonsterAction],
+) -> float:
+    """Calculate raw damage for one Multiattack routine.
+
+    Non-damaging abilities contribute zero damage.
+
+    Args:
+        routine: Concrete Multiattack sequence.
+        actions_by_id: Monster abilities indexed by identifier.
+
+    Returns:
+        Combined raw average damage of the sequence.
+
+    """
+    return sum(
+        calculate_action_average_damage(
+            action=actions_by_id[action_id],
+            actions_by_id=actions_by_id,
+        )
+        for action_id in routine.action_ids
+    )
+
+
+def find_maximum_damage_multiattack_routine(
+    *,
+    multiattack: MultiattackAction,
+    actions_by_id: Mapping[str, MonsterAction],
+) -> tuple[MultiattackRoutine, float]:
+    """Find the highest-damage legal Multiattack routine.
+
+    Args:
+        multiattack: Multiattack definition being evaluated.
+        actions_by_id: Monster abilities indexed by identifier.
+
+    Returns:
+        Highest-damage routine and its raw average damage.
+
+    """
+    return max(
+        (
+            (
+                routine,
+                calculate_multiattack_routine_damage(
+                    routine=routine,
+                    actions_by_id=actions_by_id,
+                ),
+            )
+            for routine in multiattack.valid_routines()
+        ),
+        key=lambda result: result[1],
     )

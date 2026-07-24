@@ -5,11 +5,11 @@ from .base import MonsterAction
 from .effects import ConditionEffect, DamageRoll, SavingThrowDamage
 from .multiattack import (
     ActionSubstitution,
-    ActionUse,
+    ChoiceActionUse,
+    FixedActionUse,
     MultiattackAction,
     MultiattackRoutine,
-    calculate_routine_average_damage,
-    find_maximum_damage_routine,
+    Multiattackstep,
 )
 from .spellcasting import PreparedSpell, SpellcastingAction, SpellDefinition
 from .usage import ActionUsage, AtWillUsage, LimitedUsage, RechargeUsage
@@ -17,21 +17,21 @@ from .usage import ActionUsage, AtWillUsage, LimitedUsage, RechargeUsage
 __all__ = [
     "ActionSubstitution",
     "ActionUsage",
-    "ActionUse",
     "AtWillUsage",
     "AttackAction",
+    "ChoiceActionUse",
     "ConditionEffect",
     "DamageRoll",
+    "FixedActionUse",
     "LimitedUsage",
     "MonsterAction",
     "MultiattackAction",
     "MultiattackRoutine",
+    "Multiattackstep",
     "PreparedSpell",
     "RechargeUsage",
     "SavingThrowAction",
     "SavingThrowDamage",
     "SpellDefinition",
     "SpellcastingAction",
-    "calculate_routine_average_damage",
-    "find_maximum_damage_routine",
 ]

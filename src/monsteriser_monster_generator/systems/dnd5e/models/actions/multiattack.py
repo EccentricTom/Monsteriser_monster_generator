@@ -1,20 +1,55 @@
-"""Define Multiattack actions and substitution rules."""
+"""Define Multiattack actions and their component routines."""
 
-from collections import Counter
 from collections.abc import Mapping
 from dataclasses import dataclass, field
-from itertools import combinations, product
+from itertools import combinations, groupby, product
 from typing import Literal
 
-from .attacks import AttackAction
 from .base import MonsterAction
 
 
 @dataclass(kw_only=True, frozen=True, slots=True)
-class ActionUse:
-    """Represent repeated use of an action within a routine."""
+class FixedActionUse:
+    """Represent a required ability use within multiattack.
+
+    Attributes:
+        action_id: Unique identifier of the required ability.
+        count: Number of consecutive times the ability is used.
+
+    """
 
     action_id: str
+    count: int = 1
+
+    def __post_init__(self) -> None:
+        """Validate the number of ability uses."""
+        if self.count < 1:
+            raise ValueError("Fixed action-use count must be positive.")
+
+
+@dataclass(kw_only=True, frozen=True, slots=True)
+class ChoiceActionUse:
+    """Represent a choice between abilities in a multiattack.
+
+    Attributes:
+        action_ids: Identifiers of the abilities that may fill this step.
+        count: Number of times the selected ability is used.
+
+    """
+
+    action_ids: tuple[str, ...]
+    count: int = 1
+
+    def __post_init__(self) -> None:
+        """Validate the ability choice and count."""
+        if not self.action_ids:
+            raise ValueError("A multiattack choice requires at least one action.")
+
+        if self.count < 1:
+            raise ValueError("Choice action-use count must be positive")
+
+
+type MultiattackStep = FixedActionUse | ChoiceActionUse
 
 
 @dataclass(kw_only=True, frozen=True, slots=True)
@@ -29,6 +64,8 @@ class ActionSubstitution:
         """Validate the substitution role."""
         if self.maximum_replacements < 1:
             raise ValueError("A substitution must provide at least one replacement.")
+        if not self.replacement_action_ids:
+            raise ValueError("A subtitution requires at least one replacement")
 
 
 @dataclass(kw_only=True, frozen=True, slots=True)
@@ -46,35 +83,136 @@ class MultiattackAction(MonsterAction):
         default="multiattack",
         init=False,
     )
-    base_sequence: tuple[ActionUse, ...]
+    steps: tuple[MultiattackStep, ...]
     substitutions: tuple[ActionSubstitution, ...] = ()
     description_override: str | None = None
 
     def __post_init__(self) -> None:
-        """Validate the existence of a base sequence."""
-        if not self.base_sequence:
-            raise ValueError("Multiattack should contain at least one action.")
+        """Validate the Multiattack definition."""
+        if not self.steps:
+            raise ValueError("Multiattack should contain at least one step.")
 
     def valid_routines(self) -> tuple[MultiattackRoutine, ...]:
         """Return every valid routine permitted by this multiattack.
+
+        Step choices are expanded first. Substitution rules are then applied to every resulting sequence.
 
         Returns:
             All valid multiattack routines in tuple form.
 
         """
-        routines: set[tuple[str, ...]] = {
-            tuple(action_use.action_id for action_use in self.base_sequence)
-        }
+        routines = self._generate_step_sequences()
 
         for substitution in self.substitutions:
             routines = self._apply_substitution(
-                routines,
-                substitution,
+                routines=routines,
+                substitution=substitution,
             )
 
-        return tuple(MultiattackRoutine(action_ids=routine) for routine in sorted(routines))
+        return tuple(MultiattackRoutine(action_ids=action_ids) for action_ids in sorted(routines))
 
-    def generate_multiattack_description(
+    def _generate_step_sequences(self) -> set[tuple[str, ...]]:
+        """Expand all Multiattack steps into concrete sequences.
+
+        Returns:
+            All sequences generated from fixed and choice steps.
+
+        """
+        partial_sequences: set[tuple[str, ...]] = {
+            (),
+        }
+
+        for step in self.steps:
+            step_sequences = self._expand_step(step)
+            partial_sequences = {
+                existing_sequence + step_sequence
+                for existing_sequence in partial_sequences
+                for step_sequence in step_sequences
+            }
+
+        return partial_sequences
+
+    @staticmethod
+    def _expand_step(
+        step: MultiattackStep,
+    ) -> tuple[tuple[str, ...], ...]:
+        """Expand one step into its possible concrete sequences.
+
+        Args:
+            step:Fixed or choice-based multiattack step.
+
+        Returns:
+            Concrete sequences represented by the step.
+
+        """
+        if isinstance(step, FixedActionUse):
+            return ((step.action_id,) * step.count,)
+
+        return tuple((action_id,) * step.count for action_id in step.action_ids)
+
+    @staticmethod
+    def _apply_substitution(
+        routines: set[tuple[str, ...]], substitution: ActionSubstitution
+    ) -> set[tuple[str, ...]]:
+        """Apply one substitution rule to a collection of routines."""
+        expanded_routines = set(routines)
+
+        for routine in routines:
+            replaceable_indexes = tuple(
+                index
+                for index, action_id in enumerate(routine)
+                if action_id == substitution.replaced_action_id
+            )
+
+            maximum_replacements = min(
+                substitution.maximum_replacements,
+                len(replaceable_indexes),
+            )
+
+            for replacement_count in range(
+                1,
+                maximum_replacements + 1,
+            ):
+                expanded_routines.update(
+                    MultiattackAction._generate_replacements(
+                        routine=routine,
+                        replaceable_indexes=replaceable_indexes,
+                        replacement_action_ids=(substitution.replacement_action_ids),
+                        replacement_count=replacement_count,
+                    )
+                )
+
+        return expanded_routines
+
+    @staticmethod
+    def _generate_replacements(
+        *,
+        routine: tuple[str, ...],
+        replaceable_indexes: tuple[int, ...],
+        replacement_action_ids: tuple[str, ...],
+        replacement_count: int,
+    ) -> set[tuple[str, ...]]:
+        """Generate valid routines for one substitution rule."""
+        generated_routines: set[tuple[str, ...]] = set()
+
+        for selected_indexes in combinations(
+            replaceable_indexes,
+            replacement_count,
+        ):
+            for replacements in product(
+                replacement_action_ids,
+                repeat=replacement_count,
+            ):
+                updated_routine = list(routine)
+
+                for index, replacement in zip(selected_indexes, replacements, strict=True):
+                    updated_routine[index] = replacement
+
+                generated_routines.add(tuple(updated_routine))
+
+        return generated_routines
+
+    def generate_description(
         self,
         *,
         monster_name: str,
@@ -96,9 +234,9 @@ class MultiattackAction(MonsterAction):
         if self.description_override is not None:
             return self.description_override
 
-        base_names = tuple(
-            actions_by_id[action_use.action_id].name for action_use in self.base_sequence
-        )
+        base_action_ids = self._description_action_ids()
+
+        base_names = tuple(actions_by_id[action_id].name for action_id in base_action_ids)
 
         base_description = _describe_ordered_actions(base_names)
 
@@ -120,185 +258,37 @@ class MultiattackAction(MonsterAction):
 
         return description
 
-    @staticmethod
-    def _apply_substitution(
-        routines: set[tuple[str, ...]], substitution: ActionSubstitution
-    ) -> set[tuple[str, ...]]:
-        """Apply one substitution rule to a collection of routines."""
-        expanded_routines = set(routines)
+    def _description_action_ids(self) -> tuple[str, ...]:
+        """Return one representative sequence for description text.
 
-        for routine in routines:
-            replaceable_indexes = tuple(
-                index
-                for index, action_id in enumerate(routine)
-                if action_id == substitution.replaced_action_id
-            )
+        Fixed steps are included directly. For choice steps, the first listen action is used as the representative option.
 
-            maximum_replacements = min(substitution.maximum_replacements, len(replaceable_indexes))
+        Returns:
+            Representatvie ordered action identifiers.
 
-            for replacement_count in range(
-                1,
-                maximum_replacements + 1,
-            ):
-                for indexes in combinations(
-                    replaceable_indexes,
-                    replacement_count,
-                ):
-                    for replacements in product(
-                        substitution.replacement_action_ids,
-                        repeat=replacement_count,
-                    ):
-                        updated_routine = list(routine)
+        """
+        action_ids: list[str] = []
 
-                        for index, replacement in zip(indexes, replacements, strict=True):
-                            updated_routine[index] = replacement
+        for step in self.steps:
+            if isinstance(step, FixedActionUse):
+                action_ids.extend([step.action_id] * step.count)
+                continue
+            action_ids.extend([step.action_ids[0] * step.count])
 
-                        expanded_routines.add(tuple(updated_routine))
-
-            new_routines = MultiattackAction._generate_substitutions(
-                routine=routine, replaceable_indexes=replaceable_indexes, substitution=substitution
-            )
-            expanded_routines.update(new_routines)
-
-        return expanded_routines
-
-    @staticmethod
-    def _generate_substitutions(
-        *,
-        routine: tuple[str, ...],
-        replaceable_indexes: tuple[int, ...],
-        substitution: ActionSubstitution,
-    ) -> set[tuple[str, ...]]:
-        """Generate valid routines for one substitution rule."""
-        generated: set[tuple[str, ...]] = set()
-
-        for replacement_count in range(
-            1,
-            min(
-                substitution.maximum_replacements,
-                len(
-                    replaceable_indexes,
-                ),
-            )
-            + 1,
-        ):
-            generated.update(
-                MultiattackAction._replace_actions(
-                    routine=routine,
-                    replaceable_indexes=replaceable_indexes,
-                    replacement_action_ids=(substitution.replacement_action_ids),
-                    replacement_count=replacement_count,
-                )
-            )
-
-        return generated
-
-    @staticmethod
-    def _replace_actions(
-        *,
-        routine: tuple[str, ...],
-        replaceable_indexes: tuple[int, ...],
-        replacement_action_ids: tuple[str, ...],
-        replacement_count: int,
-    ) -> set[tuple[str, ...]]:
-        """Return routines with selected actions replaced."""
-        generated: set[tuple[str, ...]] = set()
-
-        for indexes in combinations(
-            replaceable_indexes,
-            replacement_count,
-        ):
-            for replacements in product(
-                replacement_action_ids,
-                repeat=replacement_count,
-            ):
-                updated_routine = list(routine)
-
-                for index, replacement in zip(indexes, replacements, strict=True):
-                    updated_routine[index] = replacement
-
-                generated.add(tuple(updated_routine))
-
-        return generated
-
-
-def calculate_routine_average_damage(
-    *,
-    routine: MultiattackRoutine,
-    actions_by_id: Mapping[str, MonsterAction],
-) -> float:
-    """Calculate average damage for one Multiattack routine.
-
-    Args:
-    routine: Concrete action sequence.
-    actions_by_id: Available actions indexed by identifier.
-    Returns: Combined average on-hit damage.
-
-    """
-    total_damage = 0.0
-
-    for action_id in routine.action_ids:
-        action = actions_by_id[action_id]
-        if not isinstance(action, AttackAction):
-            raise TypeError(f"Action {action_id!r} is not an AttackAction")
-        total_damage += action.average_damage()
-    return total_damage
-
-
-def find_maximum_damage_routine(
-    *,
-    multiattack: MultiattackAction,
-    actions_by_id: Mapping[str, MonsterAction],
-) -> tuple[MultiattackRoutine, float]:
-    """Return the highest-damage legal Multiattack routine.
-
-    Args:
-        multiattack: Multiattack definition to evaluate.
-        actions_by_id: Available actions indexed by identifier.
-
-    Returns: The highest-damage routine and average damage.
-
-    """
-    routines = multiattack.valid_routines()
-    return max(
-        (
-            (
-                routine,
-                calculate_routine_average_damage(
-                    routine=routine,
-                    actions_by_id=actions_by_id,
-                ),
-            )
-            for routine in routines
-        ),
-        key=lambda result: result[1],
-    )
+        return tuple(action_ids)
 
 
 def _describe_ordered_actions(
     action_names: tuple[str, ...],
 ) -> str:
     """Describe an ordered collection of action names."""
-    if len(action_names) == 1:
-        return f"one {action_names[0]} attack"
-
-    counted_names = Counter(action_names)
-
-    # Use a compact count-based description when identical actions
-    # are grouped together in the sequence.
     parts: list[str] = []
-    seen: set[str] = set()
 
-    for action_name in action_names:
-        if action_name in seen:
-            continue
+    for action_name, grouped_names in groupby(action_names):
+        count = sum(1 for _ in grouped_names)
+        attack_word = "attack" if count == 1 else "attacks"
 
-        seen.add(action_name)
-        count = counted_names[action_name]
-        count_text = _number_word(count)
-
-        attack_text = "attack" if count == 1 else "attacks"
-        parts.append(f"{count_text} {action_name} {attack_text}")
+        parts.append(f"{_number_word(count)} {action_name} {attack_word}")
 
     if len(parts) == 1:
         return parts[0]

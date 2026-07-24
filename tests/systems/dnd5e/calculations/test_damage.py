@@ -5,21 +5,27 @@ from pytest import raises
 from monsteriser_monster_generator.systems.dnd5e.calculations import (
     TurnRoutine,
     calculate_action_average_damage,
+    calculate_multiattack_routine_damage,
     calculate_turn_routine_damage,
+    find_maximum_damage_multiattack_routine,
     find_maximum_damage_turn,
     find_monster_maximum_damage_turn,
 )
 from monsteriser_monster_generator.systems.dnd5e.models.actions import (
     ActionSubstitution,
-    ActionUse,
     AttackAction,
+    ChoiceActionUse,
     DamageRoll,
+    FixedActionUse,
     MonsterAction,
     MultiattackAction,
+    MultiattackRoutine,
     SavingThrowAction,
     SavingThrowDamage,
 )
-from monsteriser_monster_generator.systems.dnd5e.models.base_monster import BaseMonster
+from monsteriser_monster_generator.systems.dnd5e.models.base_monster import (
+    BaseMonster,
+)
 from monsteriser_monster_generator.systems.dnd5e.models.model_types import (
     ActionTiming,
 )
@@ -90,7 +96,7 @@ def test_calculate_action_average_damage_sums_damage_components() -> None:
     """Sum all damage components belonging to an attack."""
     venomous_bite = AttackAction(
         action_id="venomous_bite",
-        name="Venemous Bite",
+        name="Venomous Bite",
         origin="natural",
         attack_range="melee",
         attack_bonus=6,
@@ -123,6 +129,129 @@ def test_calculate_action_average_damage_sums_damage_components() -> None:
     assert result == 15.5
 
 
+def test_calculate_multiattack_routine_damage_for_attacks() -> None:
+    """Add damage from every attack in a Multiattack routine."""
+    bite = create_attack(
+        action_id="bite",
+        dice_count=1,
+        die_size=8,
+        modifier=3,
+    )
+    claw = create_attack(
+        action_id="claw",
+        dice_count=1,
+        die_size=6,
+        modifier=2,
+    )
+
+    actions_by_id: dict[str, MonsterAction] = {
+        bite.action_id: bite,
+        claw.action_id: claw,
+    }
+
+    routine = MultiattackRoutine(
+        action_ids=(
+            "bite",
+            "claw",
+            "claw",
+        ),
+    )
+
+    result = calculate_multiattack_routine_damage(
+        routine=routine,
+        actions_by_id=actions_by_id,
+    )
+
+    assert result == 18.5
+
+
+def test_calculate_multiattack_routine_damage_ignores_non_damage_action() -> None:
+    """Treat a non-damaging ability as zero raw damage."""
+    tentacle = create_attack(
+        action_id="tentacle",
+        dice_count=2,
+        die_size=6,
+        modifier=3,
+    )
+
+    dominate_mind = MonsterAction(
+        action_id="dominate_mind",
+        name="Dominate Mind",
+        category="special",
+        origin="special",
+    )
+
+    actions_by_id: dict[str, MonsterAction] = {
+        tentacle.action_id: tentacle,
+        dominate_mind.action_id: dominate_mind,
+    }
+
+    routine = MultiattackRoutine(
+        action_ids=(
+            "tentacle",
+            "tentacle",
+            "dominate_mind",
+        ),
+    )
+
+    result = calculate_multiattack_routine_damage(
+        routine=routine,
+        actions_by_id=actions_by_id,
+    )
+
+    assert result == 20.0
+
+
+def test_calculate_multiattack_routine_damage_includes_saving_throw_action() -> None:
+    """Include saving-throw damage in a Multiattack routine."""
+    tentacle = create_attack(
+        action_id="tentacle",
+        dice_count=2,
+        die_size=6,
+        modifier=3,
+    )
+
+    consume_memories = SavingThrowAction(
+        action_id="consume_memories",
+        name="Consume Memories",
+        origin="special",
+        target_description="one creature within 60 feet.",
+        saving_throw=SavingThrowDamage(
+            ability="wisdom",
+            difficulty_class=15,
+            damage=(
+                DamageRoll(
+                    dice_count=4,
+                    die_size=8,
+                    modifier=0,
+                    damage_type="psychic",
+                ),
+            ),
+        ),
+        expected_targets=1.0,
+    )
+
+    actions_by_id: dict[str, MonsterAction] = {
+        tentacle.action_id: tentacle,
+        consume_memories.action_id: consume_memories,
+    }
+
+    routine = MultiattackRoutine(
+        action_ids=(
+            "tentacle",
+            "tentacle",
+            "consume_memories",
+        ),
+    )
+
+    result = calculate_multiattack_routine_damage(
+        routine=routine,
+        actions_by_id=actions_by_id,
+    )
+
+    assert result == 38.0
+
+
 def test_calculate_action_average_damage_for_multiattack() -> None:
     """Return damage from the strongest legal Multiattack routine."""
     bite = create_attack(
@@ -143,10 +272,14 @@ def test_calculate_action_average_damage_for_multiattack() -> None:
         action_id="multiattack",
         name="Multiattack",
         origin="natural",
-        base_sequence=(
-            ActionUse(action_id="bite"),
-            ActionUse(action_id="claw"),
-            ActionUse(action_id="claw"),
+        steps=(
+            FixedActionUse(
+                action_id="bite",
+            ),
+            FixedActionUse(
+                action_id="claw",
+                count=2,
+            ),
         ),
     )
 
@@ -191,10 +324,14 @@ def test_multiattack_uses_highest_damage_substitution() -> None:
         action_id="multiattack",
         name="Multiattack",
         origin="natural",
-        base_sequence=(
-            ActionUse(action_id="claw"),
-            ActionUse(action_id="claw"),
-            ActionUse(action_id="bite"),
+        steps=(
+            FixedActionUse(
+                action_id="claw",
+                count=2,
+            ),
+            FixedActionUse(
+                action_id="bite",
+            ),
         ),
         substitutions=(
             ActionSubstitution(
@@ -219,6 +356,78 @@ def test_multiattack_uses_highest_damage_substitution() -> None:
 
     # Result should be claw + bite + tail
     assert result == 24.0
+
+
+def test_find_maximum_damage_multiattack_routine_selects_damaging_choice() -> None:
+    """Choose a damaging ability over a non-damaging alternative."""
+    tentacle = create_attack(
+        action_id="tentacle",
+        dice_count=2,
+        die_size=6,
+        modifier=3,
+    )
+
+    consume_memories = SavingThrowAction(
+        action_id="consume_memories",
+        name="Consume Memories",
+        origin="special",
+        target_description="One Creature within 60 feet.",
+        saving_throw=SavingThrowDamage(
+            ability="wisdom",
+            difficulty_class=15,
+            damage=(
+                DamageRoll(
+                    dice_count=4,
+                    die_size=8,
+                    modifier=0,
+                    damage_type="psychic",
+                ),
+            ),
+        ),
+        expected_targets=1.0,
+    )
+
+    dominate_mind = MonsterAction(
+        action_id="dominate_mind", name="Dominate Mind", category="special", origin="special"
+    )
+
+    multiattack = MultiattackAction(
+        action_id="multiattack",
+        name="Multiattack",
+        origin="natural",
+        steps=(
+            FixedActionUse(
+                action_id="tentacle",
+                count=2,
+            ),
+            ChoiceActionUse(
+                action_ids=(
+                    "dominate_mind",
+                    "consume_memories",
+                ),
+            ),
+        ),
+    )
+
+    actions_by_id: dict[str, MonsterAction] = {
+        tentacle.action_id: tentacle,
+        consume_memories.action_id: consume_memories,
+        dominate_mind.action_id: dominate_mind,
+        multiattack.action_id: multiattack,
+    }
+
+    routine, damage = find_maximum_damage_multiattack_routine(
+        multiattack=multiattack, actions_by_id=actions_by_id
+    )
+
+    assert routine == MultiattackRoutine(
+        action_ids=(
+            "tentacle",
+            "tentacle",
+            "consume_memories",
+        ),
+    )
+    assert damage == 38.0
 
 
 def test_calculate_average_damage_for_saving_throw() -> None:
@@ -358,9 +567,13 @@ def test_find_maximum_damage_turn_return_strongest_routine() -> None:
         action_id="multiattack",
         name="Multiattack",
         origin="natural",
-        base_sequence=(
-            ActionUse(action_id="bite"),
-            ActionUse(action_id="claw"),
+        steps=(
+            FixedActionUse(
+                action_id="bite",
+            ),
+            FixedActionUse(
+                action_id="claw",
+            ),
         ),
     )
 
@@ -462,9 +675,13 @@ def test_find_monster_maximum_damage_turn_builds_dependencies() -> None:
         action_id="multiattack",
         name="Multiattack",
         origin="natural",
-        base_sequence=(
-            ActionUse(action_id="bite"),
-            ActionUse(action_id="claw"),
+        steps=(
+            FixedActionUse(
+                action_id="bite",
+            ),
+            FixedActionUse(
+                action_id="claw",
+            ),
         ),
     )
 
@@ -486,3 +703,16 @@ def test_find_monster_maximum_damage_turn_builds_dependencies() -> None:
     )
 
     assert damage == 19.5
+
+
+def test_find_monster_maximum_damage_turn_rejects_no_primary_actions() -> None:
+    """Reject damage evaluation when no turn routines exist."""
+    monster = BaseMonster(
+        name="Passive Wolf",
+    )
+
+    with raises(
+        ValueError,
+        match="No turn routines were provided",
+    ):
+        find_monster_maximum_damage_turn(monster)
