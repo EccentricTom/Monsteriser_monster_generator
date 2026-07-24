@@ -1,10 +1,13 @@
 """Test raw average damage calculations for D&D 5E 2024 monster."""
 
+from dataclasses import replace
+
 from pytest import raises
 
 from monsteriser_monster_generator.systems.dnd5e.calculations import (
     TurnRoutine,
     calculate_action_average_damage,
+    calculate_limited_use_action_average_damage,
     calculate_limited_use_average_damage,
     calculate_multiattack_routine_damage,
     calculate_turn_routine_damage,
@@ -18,6 +21,7 @@ from monsteriser_monster_generator.systems.dnd5e.models.actions import (
     ChoiceActionUse,
     DamageRoll,
     FixedActionUse,
+    LimitedUsage,
     MonsterAction,
     MultiattackAction,
     MultiattackRoutine,
@@ -810,4 +814,131 @@ def test_limited_use_damage_rejects_zero_rounds() -> None:
             fallback_damage=12.0,
             uses=1,
             rounds=0,
+        )
+
+
+def test_calculate_limited_action_average_damage_once() -> None:
+    """Average one limited attack and two fallback attacks."""
+    powerful_bite = create_attack(
+        action_id="powerful_bite",
+        dice_count=4,
+        die_size=8,
+        modifier=2,
+    )
+
+    powerful_bite = replace(powerful_bite, usage=LimitedUsage(uses=1, period="day"))
+
+    claw = create_attack(
+        action_id="claw",
+        dice_count=2,
+        die_size=6,
+        modifier=3,
+    )
+
+    actions_by_id: dict[str, MonsterAction] = {
+        powerful_bite.action_id: powerful_bite,
+        claw.action_id: claw,
+    }
+
+    result = calculate_limited_use_action_average_damage(
+        limited_action=powerful_bite, fallback_action=claw, actions_by_id=actions_by_id
+    )
+
+    assert result == 40 / 3
+
+
+def test_calculate_limited_action_average_damage_twice() -> None:
+    """Average two limited attacks and one fallback attack."""
+    limited_attack = replace(
+        create_attack(
+            action_id="limited_attack",
+            dice_count=3,
+            die_size=6,
+            modifier=1,
+        ),
+        usage=LimitedUsage(
+            uses=2,
+            period="day",
+        ),
+    )
+
+    fallback = create_attack(
+        action_id="fallback",
+        dice_count=1,
+        die_size=6,
+        modifier=2,
+    )
+
+    actions_by_id: dict[str, MonsterAction] = {
+        limited_attack.action_id: limited_attack,
+        fallback.action_id: fallback,
+    }
+
+    result = calculate_limited_use_action_average_damage(
+        limited_action=limited_attack,
+        fallback_action=fallback,
+        actions_by_id=actions_by_id,
+    )
+
+    assert result == 9.5
+
+
+def test_calculate_limited_action_uses_stronger_fallback() -> None:
+    """Use the fallback every round when it deals more damage."""
+    limited_attack = replace(
+        create_attack(
+            action_id="limited_attack",
+            dice_count=1,
+            die_size=4,
+        ),
+        usage=LimitedUsage(
+            uses=2,
+            period="day",
+        ),
+    )
+
+    fallback = create_attack(
+        action_id="fallback",
+        dice_count=2,
+        die_size=6,
+        modifier=3,
+    )
+
+    actions_by_id: dict[str, MonsterAction] = {
+        limited_attack.action_id: limited_attack,
+        fallback.action_id: fallback,
+    }
+
+    result = calculate_limited_use_action_average_damage(
+        limited_action=limited_attack,
+        fallback_action=fallback,
+        actions_by_id=actions_by_id,
+    )
+
+    assert result == 10.0
+
+
+def test_calculate_limited_action_rejects_at_will_action() -> None:
+    """Reject an action without LimitedUsage."""
+    bite = create_attack(
+        action_id="bite",
+    )
+
+    claw = create_attack(
+        action_id="claw",
+    )
+
+    actions_by_id: dict[str, MonsterAction] = {
+        bite.action_id: bite,
+        claw.action_id: claw,
+    }
+
+    with raises(
+        TypeError,
+        match="Limited action must use LimitedUsage",
+    ):
+        calculate_limited_use_action_average_damage(
+            limited_action=bite,
+            fallback_action=claw,
+            actions_by_id=actions_by_id,
         )

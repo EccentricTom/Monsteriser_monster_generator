@@ -4,6 +4,7 @@ from collections.abc import Mapping
 
 from ..models.actions import (
     AttackAction,
+    LimitedUsage,
     MonsterAction,
     MultiattackAction,
     MultiattackRoutine,
@@ -233,3 +234,45 @@ def calculate_limited_use_average_damage(
     total_damage = limited_damage * limited_uses + fallback_damage * fallback_uses
 
     return total_damage / rounds
+
+
+def calculate_limited_use_action_average_damage(
+    *,
+    limited_action: MonsterAction,
+    fallback_action: MonsterAction,
+    actions_by_id: Mapping[str, MonsterAction],
+    rounds: int = 3,
+) -> float:
+    """Calculate CR-window damage for limited-use action.
+
+    Args:
+        limited_action: Limited-use action being evaluated.
+        fallback_action: Repeatable action used when the limited action is unavailable or weaker.
+        actions_by_id: Monster abilities indexed by identifier.
+        rounds: Number of rounds in the CR evaluation window.
+
+    Returns:
+        Average damage per round across the evaluation window.
+
+    Raises:
+        TypeError: If the action does not use LimitedUsage.
+
+    """
+    if not isinstance(limited_action.usage, LimitedUsage):
+        raise TypeError("Limited action must use LimitedUsage")
+    limited_damage = calculate_action_average_damage(
+        action=limited_action,
+        actions_by_id=actions_by_id,
+    )
+
+    fallback_damage = calculate_action_average_damage(
+        action=fallback_action,
+        actions_by_id=actions_by_id,
+    )
+
+    return calculate_limited_use_average_damage(
+        limited_damage=limited_damage,
+        fallback_damage=fallback_damage,
+        uses=limited_action.usage.uses,
+        rounds=rounds,
+    )
