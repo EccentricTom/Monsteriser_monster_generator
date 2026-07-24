@@ -7,6 +7,7 @@ from monsteriser_monster_generator.systems.dnd5e.calculations import (
     calculate_action_average_damage,
     calculate_turn_routine_damage,
     find_maximum_damage_turn,
+    find_monster_maximum_damage_turn,
 )
 from monsteriser_monster_generator.systems.dnd5e.models.actions import (
     ActionSubstitution,
@@ -18,6 +19,7 @@ from monsteriser_monster_generator.systems.dnd5e.models.actions import (
     SavingThrowAction,
     SavingThrowDamage,
 )
+from monsteriser_monster_generator.systems.dnd5e.models.base_monster import BaseMonster
 from monsteriser_monster_generator.systems.dnd5e.models.model_types import (
     ActionTiming,
 )
@@ -332,8 +334,18 @@ def test_calculate_turn_routine_damage_adds_bonus_action() -> None:
 
 def test_find_maximum_damage_turn_return_strongest_routine() -> None:
     """Return the legal attack routine with the strongest average damage."""
-    bite = create_attack(action_id="bite", dice_count=1, die_size=8, modifier=3)
-    claw = create_attack(action_id="claw", dice_count=1, die_size=6, modifier=3)
+    bite = create_attack(
+        action_id="bite",
+        dice_count=1,
+        die_size=8,
+        modifier=3,
+    )
+    claw = create_attack(
+        action_id="claw",
+        dice_count=1,
+        die_size=6,
+        modifier=3,
+    )
     quick_claw = create_attack(
         action_id="quick_claw",
         dice_count=1,
@@ -422,3 +434,55 @@ def test_calculate_turn_routine_damage_raises_for_unknown_bonus_action() -> None
             routine=routine,
             actions_by_id=actions_by_id,
         )
+
+
+def test_find_monster_maximum_damage_turn_builds_dependencies() -> None:
+    """Generate mappings and routines when evaluating a monster."""
+    bite = create_attack(
+        action_id="bite",
+        dice_count=1,
+        die_size=8,
+        modifier=3,
+    )
+    claw = create_attack(
+        action_id="claw",
+        dice_count=1,
+        die_size=6,
+        modifier=3,
+    )
+    quick_claw = create_attack(
+        action_id="quick_claw",
+        dice_count=1,
+        die_size=4,
+        modifier=3,
+        timing="bonus_action",
+    )
+
+    multiattack = MultiattackAction(
+        action_id="multiattack",
+        name="Multiattack",
+        origin="natural",
+        base_sequence=(
+            ActionUse(action_id="bite"),
+            ActionUse(action_id="claw"),
+        ),
+    )
+
+    monster = BaseMonster(
+        name="Wolf",
+        abilities=[
+            bite,
+            claw,
+            quick_claw,
+            multiattack,
+        ],
+    )
+
+    routine, damage = find_monster_maximum_damage_turn(monster)
+
+    assert routine == TurnRoutine(
+        primary_action_id="multiattack",
+        bonus_action_id="quick_claw",
+    )
+
+    assert damage == 19.5
