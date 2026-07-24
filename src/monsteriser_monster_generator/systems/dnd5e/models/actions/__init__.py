@@ -9,7 +9,7 @@ from .multiattack import (
     FixedActionUse,
     MultiattackAction,
     MultiattackRoutine,
-    Multiattackstep,
+    MultiattackStep,
 )
 from .spellcasting import PreparedSpell, SpellcastingAction, SpellDefinition
 from .usage import ActionUsage, AtWillUsage, LimitedUsage, RechargeUsage
@@ -27,7 +27,7 @@ __all__ = [
     "MonsterAction",
     "MultiattackAction",
     "MultiattackRoutine",
-    "Multiattackstep",
+    "MultiattackStep",
     "PreparedSpell",
     "RechargeUsage",
     "SavingThrowAction",

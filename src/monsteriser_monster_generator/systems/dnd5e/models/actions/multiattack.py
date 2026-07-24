@@ -43,7 +43,7 @@ class ChoiceActionUse:
     def __post_init__(self) -> None:
         """Validate the ability choice and count."""
         if not self.action_ids:
-            raise ValueError("A multiattack choice requires at least one action.")
+            raise ValueError("A Multiattack choice requires at least one action")
 
         if self.count < 1:
             raise ValueError("Choice action-use count must be positive")
@@ -63,7 +63,7 @@ class ActionSubstitution:
     def __post_init__(self) -> None:
         """Validate the substitution role."""
         if self.maximum_replacements < 1:
-            raise ValueError("A substitution must provide at least one replacement.")
+            raise ValueError("A substitution must provide at least one replacement")
         if not self.replacement_action_ids:
             raise ValueError("A subtitution requires at least one replacement")
 
@@ -90,7 +90,7 @@ class MultiattackAction(MonsterAction):
     def __post_init__(self) -> None:
         """Validate the Multiattack definition."""
         if not self.steps:
-            raise ValueError("Multiattack should contain at least one step.")
+            raise ValueError("Multiattack must contain at least one step")
 
     def valid_routines(self) -> tuple[MultiattackRoutine, ...]:
         """Return every valid routine permitted by this multiattack.

@@ -3,6 +3,7 @@
 from .combat_routines import TurnRoutine, generate_turn_routines
 from .damage import (
     calculate_action_average_damage,
+    calculate_limited_use_average_damage,
     calculate_multiattack_routine_damage,
     calculate_turn_routine_damage,
     find_maximum_damage_multiattack_routine,
@@ -13,6 +14,7 @@ from .damage import (
 __all__ = [
     "TurnRoutine",
     "calculate_action_average_damage",
+    "calculate_limited_use_average_damage",
     "calculate_multiattack_routine_damage",
     "calculate_turn_routine_damage",
     "find_maximum_damage_multiattack_routine",

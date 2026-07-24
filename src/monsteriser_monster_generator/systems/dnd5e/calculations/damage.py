@@ -140,34 +140,6 @@ def find_monster_maximum_damage_turn(
     )
 
 
-def calculate_routine_average_damage(
-    *,
-    routine: MultiattackRoutine,
-    actions_by_id: Mapping[str, MonsterAction],
-) -> float:
-    """Calculate average damage for one Multiattack routine.
-
-    Args:
-        routine: Concrete action sequence.
-        actions_by_id: Available actions indexed by identifier.
-
-    Returns:
-        Combined average on-hit damage.
-
-    Raises:
-        TypeError: If a referenced ability is not an attack.
-
-    """
-    total_damage = 0.0
-
-    for action_id in routine.action_ids:
-        action = actions_by_id[action_id]
-        if not isinstance(action, AttackAction):
-            raise TypeError(f"Action {action_id!r} is not an AttackAction")
-        total_damage += action.average_damage()
-    return total_damage
-
-
 def calculate_multiattack_routine_damage(
     *,
     routine: MultiattackRoutine,
@@ -222,3 +194,42 @@ def find_maximum_damage_multiattack_routine(
         ),
         key=lambda result: result[1],
     )
+
+
+def calculate_limited_use_average_damage(
+    *,
+    limited_damage: float,
+    fallback_damage: float,
+    uses: int,
+    rounds: int = 3,
+) -> float:
+    """Calculate average damage across a fixed CR evaluation window.
+
+    The standard window is 3, only change when necessary.
+
+    Args:
+        limited_damage: Damage from the limited use attack action.
+        fallback_damage: Damage from attacks used when limited use attacks are no longer available.
+        uses: the number of times a limited use action can be used.
+        rounds: The CR evaluation window, meaning (3) rounds of combat.
+
+    Returns:
+        The average damage per round across the evaluation window.
+
+    Raises:
+        ValueError: If uses is negative or rounds is not posive.
+
+    """
+    if uses < 0:
+        raise ValueError("Uses cannot be negative")
+    if rounds < 1:
+        raise ValueError("Rounds must be positive")
+    if limited_damage <= fallback_damage:
+        return fallback_damage
+
+    limited_uses = min(uses, rounds)
+    fallback_uses = rounds - limited_uses
+
+    total_damage = limited_damage * limited_uses + fallback_damage * fallback_uses
+
+    return total_damage / rounds

@@ -5,6 +5,7 @@ from pytest import raises
 from monsteriser_monster_generator.systems.dnd5e.calculations import (
     TurnRoutine,
     calculate_action_average_damage,
+    calculate_limited_use_average_damage,
     calculate_multiattack_routine_damage,
     calculate_turn_routine_damage,
     find_maximum_damage_multiattack_routine,
@@ -716,3 +717,97 @@ def test_find_monster_maximum_damage_turn_rejects_no_primary_actions() -> None:
         match="No turn routines were provided",
     ):
         find_monster_maximum_damage_turn(monster)
+
+
+def test_limited_use_damage_once_over_three_rounds() -> None:
+    """Average one limited use and two fallback turns."""
+    result = calculate_limited_use_average_damage(
+        limited_damage=30.0,
+        fallback_damage=12.0,
+        uses=1,
+    )
+
+    assert result == 18.0
+
+
+def test_limited_use_damage_twice_over_three_rounds() -> None:
+    """Average of two lmiited use and one fallback turn."""
+    result = calculate_limited_use_average_damage(
+        limited_damage=30.0,
+        fallback_damage=12.0,
+        uses=2,
+    )
+
+    assert result == 24.0
+
+
+def test_limited_use_damage_uses_fallback_when_stronger() -> None:
+    """Use the fallback option when it does more damage."""
+    result = calculate_limited_use_average_damage(
+        limited_damage=8.0,
+        fallback_damage=12.0,
+        uses=2,
+    )
+
+    assert result == 12.0
+
+
+def test_limited_use_damage_uses_fallback_when_equal() -> None:
+    """Use the fallback option when the damage is equal."""
+    result = calculate_limited_use_average_damage(
+        limited_damage=12.0,
+        fallback_damage=12.0,
+        uses=2,
+    )
+
+    assert result == 12.0
+
+
+def test_limited_use_damage_accepts_zero_uses() -> None:
+    """Use fallback damage when no limited uses are available."""
+    result = calculate_limited_use_average_damage(
+        limited_damage=30.0,
+        fallback_damage=12.0,
+        uses=0,
+    )
+
+    assert result == 12.0
+
+
+def test_limited_use_damage_supports_custom_round_count() -> None:
+    """Calculate average damage over a custom evaluation window."""
+    result = calculate_limited_use_average_damage(
+        limited_damage=30.0,
+        fallback_damage=10.0,
+        uses=2,
+        rounds=4,
+    )
+
+    assert result == 20.0
+
+
+def test_limited_use_damage_rejects_negative_uses() -> None:
+    """Reject a negative limited-use_count."""
+    with raises(
+        ValueError,
+        match="Uses cannot be negative",
+    ):
+        calculate_limited_use_average_damage(
+            limited_damage=30.0,
+            fallback_damage=12.0,
+            uses=-1,
+        )
+
+
+def test_limited_use_damage_rejects_zero_rounds() -> None:
+    """Reject an empty evaluation window."""
+    with raises(
+        ValueError,
+        match="Rounds must be positive",
+    ):
+        calculate_limited_use_average_damage(
+            limited_damage=30.0,
+            fallback_damage=12.0,
+            uses=1,
+            rounds=0,
+        )
