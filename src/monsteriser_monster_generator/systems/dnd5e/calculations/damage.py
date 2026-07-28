@@ -1,6 +1,7 @@
 """Calculate the raw average damage for D&D 5E 2024 monster actions."""
 
 from collections.abc import Mapping
+from dataclasses import dataclass
 
 from ..models.actions import (
     AttackAction,
@@ -8,6 +9,7 @@ from ..models.actions import (
     MonsterAction,
     MultiattackAction,
     MultiattackRoutine,
+    RechargeUsage,
     SavingThrowAction,
 )
 from ..models.base_monster import BaseMonster
@@ -276,3 +278,103 @@ def calculate_limited_use_action_average_damage(
         uses=limited_action.usage.uses,
         rounds=rounds,
     )
+
+
+def calculate_recharge_average_damage(
+    *, recharge_damage: float, fallback_damage: float, recharge_probability: float, rounds: int = 3
+) -> float:
+    """Calculate average recharge damage across a CR window.
+
+    The recharge action is assumed to be available in the first round.
+    In each later round, it contributes its damage according to its recharge
+    probability; otherwise, the fallback action is used.
+
+    Args:
+        recharge_damage: Damage dealt by the recharge action.
+        fallback_damage: Damage_dealt by the repeatable action.
+        recharge_probability: Probability of recharging between rounds.
+        rounds: Number of rounds in the CR evaluation window.
+
+    Returns:
+        Average damage per round across the evaluation window.
+
+    Raises:
+        ValueError: If the probability is outside zero to one or the number of rounds is not positive.
+
+    """
+    if not 0.0 <= recharge_probability <= 1.0:
+        raise ValueError("Recharge probability must be between 0 and 1")
+
+    if rounds < 1:
+        raise ValueError("Rounds must be positive")
+
+    if recharge_damage <= fallback_damage:
+        return fallback_damage
+
+    later_round_damage = recharge_damage * recharge_probability + fallback_damage * (
+        1.0 - recharge_probability
+    )
+
+    total_damage = recharge_damage + later_round_damage * (rounds - 1)
+
+    return total_damage / rounds
+
+
+def calculate_recharge_action_average_damage(
+    *,
+    recharge_action: MonsterAction,
+    fallback_action: MonsterAction,
+    actions_by_id: Mapping[str, MonsterAction],
+    rounds: int = 3,
+) -> float:
+    """Calculate the CR-window damage for a recharge action.
+
+    Args:
+        recharge_action: Recharge action being evaluated.
+        fallback_action: Fallback action to use when Recharge action not available.
+        actions_by_id: Monster abilities indexed by identifier.
+        rounds: Number of rounds in the CR evaluation window. Defaults to 3.
+
+    Returns:
+        Average damage per round across the CR evaluation window
+
+    Raises:
+        TypeError: If the action does not use RechargeUsage.
+
+    """
+    if not isinstance(
+        recharge_action.usage,
+        RechargeUsage,
+    ):
+        raise TypeError("Recharge action must use RechargeUsage.")
+
+    recharge_damage = calculate_action_average_damage(
+        action=recharge_action, actions_by_id=actions_by_id
+    )
+
+    fallback_damage = calculate_action_average_damage(
+        action=fallback_action, actions_by_id=actions_by_id
+    )
+
+    return calculate_recharge_average_damage(
+        recharge_damage=recharge_damage,
+        fallback_damage=fallback_damage,
+        recharge_probability=recharge_action.usage.recharge_probability,
+        rounds=rounds,
+    )
+
+
+@dataclass(kw_only=True, frozen=True, slots=True)
+class OffensiveDamageResult:
+    """Summarize damage used for offensive CR calculations.
+
+    Attributes:
+        average_damage_per_round: Average raw damage across the CR evaluation window.
+        fallback_routine: Strongest repeatable turn routine.
+        special_action_id: Limited-use or recharge action selected over the fallback, if any.
+
+    """
+
+    average_damage_per_round: float
+    fallback_routine: TurnRoutine
+    special_action_id: str | None = None
