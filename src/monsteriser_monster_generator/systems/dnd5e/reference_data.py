@@ -71,11 +71,10 @@ class ChallengeRatingReference:
         )
 
     def get_legendary_reference(self) -> pl.DataFrame:
-        """Return challenge-rating and legendary damage columns."""
+        """Return the reference without standard damage columns."""
         return self.reference.select(
-            "challenge_rating",
-            "dpr_legend_min",
-            "dpr_legend_max",
+            "dpr_min",
+            "dpr_max",
         )
 
     def _validate_columns(self) -> None:
