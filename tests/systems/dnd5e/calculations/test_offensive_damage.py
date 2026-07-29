@@ -219,3 +219,52 @@ def test_offensvie_damage_rejects_non_positive_rounds() -> None:
             monster,
             rounds=0,
         )
+
+
+def test_offensive_damage_selects_strongest_special_option() -> None:
+    """Select the special action with the highest CR-window average."""
+    fallback = create_attack(
+        action_id="bite",
+        dice_count=2,
+        die_size=6,
+        modifier=2,
+    )
+
+    limited_attack = replace(
+        create_attack(
+            action_id="limited_attack",
+            dice_count=6,
+            die_size=6,
+            modifier=0,
+        ),
+        usage=LimitedUsage(
+            uses=1,
+            period="day",
+        ),
+    )
+
+    recharge_attack = replace(
+        create_attack(
+            action_id="recharge_attack",
+            dice_count=4,
+            die_size=6,
+            modifier=4,
+        ),
+        usage=RechargeUsage(
+            recharge_minimum=5,
+        ),
+    )
+
+    monster = BaseMonster(
+        name="Hybrid Monster",
+        abilities=[
+            fallback,
+            limited_attack,
+            recharge_attack,
+        ],
+    )
+
+    result = calculate_monster_offensive_damage(monster)
+
+    assert result.special_action_id == "recharge_attack"
+    assert result.average_damage_per_round == 14.0
