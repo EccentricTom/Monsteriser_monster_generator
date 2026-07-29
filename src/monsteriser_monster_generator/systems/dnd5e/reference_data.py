@@ -7,8 +7,8 @@ from typing import TypedDict, cast
 
 import polars as pl
 
-PROJECT_ROOT = Path(__file__).resolve().parents[2]
-DATA_DIRECTORY = PROJECT_ROOT / "data" / "fifth_edition"
+SYSTEM_DIRECTORY = Path(__file__).resolve().parent
+DATA_DIRECTORY = SYSTEM_DIRECTORY / "data" / "fifth_edition"
 
 CHALLENGE_RATING_FILE = DATA_DIRECTORY / "baseline_stats.csv"
 GEAR_FILE = DATA_DIRECTORY / "gear.json"
@@ -219,7 +219,7 @@ def load_challenge_rating_reference(
 
     reference = pl.read_csv(
         filepath,
-        schema=CHALLENGE_RATING_SCHEMA,
+        schema_overrides=CHALLENGE_RATING_SCHEMA,
     )
 
     challenge_rating_reference = ChallengeRatingReference(
