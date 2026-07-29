@@ -1,11 +1,19 @@
 """Test D&D 5E combat-routine generation."""
 
+from dataclasses import replace
+
 from monsteriser_monster_generator.systems.dnd5e.calculations import (
     TurnRoutine,
+    generate_repeatable_turn_routines,
     generate_turn_routines,
 )
 from monsteriser_monster_generator.systems.dnd5e.models import BaseMonster
-from monsteriser_monster_generator.systems.dnd5e.models.actions import MonsterAction
+from monsteriser_monster_generator.systems.dnd5e.models.actions import (
+    AttackAction,
+    DamageRoll,
+    LimitedUsage,
+    MonsterAction,
+)
 from monsteriser_monster_generator.systems.dnd5e.models.model_types import (
     ActionTiming,
 )
@@ -32,6 +40,46 @@ def create_action(
         category="special",
         origin="custom",
         timing=timing,
+    )
+
+
+def create_attack(
+    *,
+    action_id: str,
+    dice_count: int = 1,
+    die_size: int = 4,
+    modifier: int = 0,
+    timing: ActionTiming = "action",
+) -> AttackAction:
+    """Create a configured attack for damage tests.
+
+    Args:
+        action_id: Unique identifier for the attack action.
+        dice_count: the number of damage dice.
+        die_size: the size of the damage dice, between 4 and 20.
+        modifier: the flat damage modifier.
+        timing: Action economy timing of the attack, either action or bonus_action
+
+    Returns:
+        A configured melee attack.
+
+    """
+    return AttackAction(
+        action_id=action_id,
+        name=action_id.replace("_", " ").title(),
+        origin="natural",
+        timing=timing,
+        attack_range="melee",
+        attack_bonus=5,
+        reach_ft=5,
+        damage=(
+            DamageRoll(
+                dice_count=dice_count,
+                die_size=die_size,
+                modifier=modifier,
+                damage_type="slashing",
+            ),
+        ),
     )
 
 
@@ -204,5 +252,69 @@ def test_create_turn_routines_excludes_reactions() -> None:
     assert result == (
         TurnRoutine(
             primary_action_id="bite",
+        ),
+    )
+
+
+def test_generate_repeatable_turn_routines_excludes_limited_action() -> None:
+    """Exclude limited-use primary actions from a fallback routine."""
+    bite = create_attack(action_id="bite")
+
+    powerful_bite = replace(
+        create_attack(
+            action_id="powerful_bite",
+        ),
+        usage=LimitedUsage(
+            uses=1,
+            period="day",
+        ),
+    )
+
+    monster = BaseMonster(
+        name="wolf",
+        abilities=[bite, powerful_bite],
+    )
+
+    result = generate_repeatable_turn_routines(monster)
+
+    assert result == (
+        TurnRoutine(
+            primary_action_id="bite",
+        ),
+    )
+
+
+def test_generate_repeatable_turn_routines_excludes_limited_action_with_bonus_action() -> None:
+    """Exclude limited-use primary actions from a fallback routine and including a bonus action."""
+    bite = create_attack(
+        action_id="bite",
+    )
+
+    quick_bite = create_action(action_id="quick_bite", timing="bonus_action")
+
+    powerful_bite = replace(
+        create_attack(
+            action_id="powerful_bite",
+        ),
+        usage=LimitedUsage(
+            uses=1,
+            period="day",
+        ),
+    )
+
+    monster = BaseMonster(
+        name="wolf",
+        abilities=[bite, powerful_bite, quick_bite],
+    )
+
+    result = generate_repeatable_turn_routines(monster)
+
+    assert result == (
+        TurnRoutine(
+            primary_action_id="bite",
+        ),
+        TurnRoutine(
+            primary_action_id="bite",
+            bonus_action_id="quick_bite",
         ),
     )

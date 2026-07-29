@@ -8,7 +8,6 @@ from ..models.actions import (
     AtWillUsage,
     MonsterAction,
 )
-from ..models.base_monster import BaseMonster
 
 
 def action_is_repeatable(action: MonsterAction) -> bool:
@@ -90,7 +89,7 @@ def generate_repeatable_turn_routines(
 
     return tuple(
         routine
-        for routine in generate_repeatable_turn_routines(monster)
+        for routine in generate_turn_routines(monster)
         if _turn_routine_is_repeatable(
             routine=routine,
             actions_by_id=actions_by_id,
