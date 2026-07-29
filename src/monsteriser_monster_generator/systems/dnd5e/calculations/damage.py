@@ -1,7 +1,6 @@
 """Calculate the raw average damage for D&D 5E 2024 monster actions."""
 
 from collections.abc import Mapping
-from dataclasses import dataclass
 
 from ..models.actions import (
     AttackAction,
@@ -195,19 +194,3 @@ def find_monster_maximum_damage_turn(
         routines=routines,
         actions_by_id=actions_by_id,
     )
-
-
-@dataclass(kw_only=True, frozen=True, slots=True)
-class OffensiveDamageResult:
-    """Summarize damage used for offensive CR calculations.
-
-    Attributes:
-        average_damage_per_round: Average raw damage across the CR evaluation window.
-        fallback_routine: Strongest repeatable turn routine.
-        special_action_id: Limited-use or recharge action selected over the fallback, if any.
-
-    """
-
-    average_damage_per_round: float
-    fallback_routine: TurnRoutine
-    special_action_id: str | None = None
