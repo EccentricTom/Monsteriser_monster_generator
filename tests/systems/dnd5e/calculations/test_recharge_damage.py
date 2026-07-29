@@ -2,7 +2,7 @@
 
 from dataclasses import replace
 
-from pytest import approx, raises
+from pytest import raises
 
 from monsteriser_monster_generator.systems.dnd5e.calculations import (
     calculate_recharge_action_average_damage,
@@ -194,7 +194,7 @@ def test_calculate_recharge_action_average_damage_for_recharge_five() -> None:
         recharge_action=breath_weapon, fallback_action=bite, actions_by_id=actions_by_id
     )
 
-    assert result == approx(27.0)
+    assert result == 27.0
 
 
 def test_calculate_recharge_action_average_damage_for_recharge_six() -> None:
@@ -227,7 +227,7 @@ def test_calculate_recharge_action_average_damage_for_recharge_six() -> None:
         actions_by_id=actions_by_id,
     )
 
-    assert result == approx(23.5)
+    assert result == 23.5
 
 
 def test_calculate_recharge_action_uses_stronger_fallback() -> None:
