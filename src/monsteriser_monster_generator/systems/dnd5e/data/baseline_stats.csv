@@ -1,4 +1,4 @@
-﻿CR,armor_class,save_bonus,hit_points_min,hit_points_max,attack_bonus,save_dc,dpr_min,dpr_max,dpr_legend_min,dpr_legend_max
+﻿challenge_rating,armor_class,save_bonus,hit_points_min,hit_points_max,attack_bonus,save_dc,dpr_min,dpr_max,dpr_legend_min,dpr_legend_max
 1,14,1,20,36,5,13,12,17,15,21
 2,15,1,37,54,5,13,18,23,22,28
 3,15,1,55,72,6,14,24,28,29,36

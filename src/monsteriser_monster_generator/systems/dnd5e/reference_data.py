@@ -270,6 +270,31 @@ class ChallengeRatingReference:
 
         return matching_rows
 
+    def get_expected_armor_class(
+        self,
+        challenge_rating: int,
+    ) -> int:
+        """Return the expected Armor class (AC) for a challenge rating."""
+        matching_rows = self.reference.filter(pl.col("challenge_rating") == challenge_rating)
+
+        if matching_rows.is_empty():
+            raise ValueError(
+                f"Challenge Rating falls outside the challenge-rating reference: {challenge_rating}"
+            )
+
+        if matching_rows.height > 1:
+            raise ValueError(f"Challenge rating is duplicated: {challenge_rating}")
+
+        armor_class = matching_rows.item(
+            0,
+            "armor_class",
+        )
+
+        if not isinstance(armor_class, int):
+            raise TypeError("Armor class reference value must be an integer")
+
+        return armor_class
+
 
 def load_challenge_rating_reference(
     filepath: Path = CHALLENGE_RATING_FILE,
