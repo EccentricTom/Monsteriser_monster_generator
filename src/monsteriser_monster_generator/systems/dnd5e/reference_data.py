@@ -279,7 +279,7 @@ class ChallengeRatingReference:
 
         if matching_rows.is_empty():
             raise ValueError(
-                f"Challenge Rating falls outside the challenge-rating reference: {challenge_rating}"
+                f"Challenge rating falls outside the challenge-rating reference: {challenge_rating}"
             )
 
         if matching_rows.height > 1:
@@ -291,7 +291,7 @@ class ChallengeRatingReference:
         )
 
         if not isinstance(armor_class, int):
-            raise TypeError("Armor class reference value must be an integer")
+            raise TypeError("Armor-class reference value must be an integer")
 
         return armor_class
 
