@@ -214,7 +214,7 @@ def test_offensvie_damage_rejects_non_positive_rounds() -> None:
         abilities=[bite],
     )
 
-    with raises(ValueError, match="Rounds must be postive"):
+    with raises(ValueError, match="Rounds must be positive"):
         calculate_monster_offensive_damage(
             monster,
             rounds=0,

@@ -58,7 +58,7 @@ def calculate_monster_offensive_damage(
 
     """
     if rounds < 1:
-        raise ValueError("Rounds must be postive")
+        raise ValueError("Rounds must be positive")
 
     actions_by_id = monster.get_abilities_by_id()
 
