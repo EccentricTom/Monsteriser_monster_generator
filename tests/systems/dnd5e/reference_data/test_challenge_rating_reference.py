@@ -47,14 +47,14 @@ def create_reference(
     )
 
 
-def test_validate_accepts_valid_refence() -> None:
+def test_validate_accepts_valid_reference() -> None:
     """Accept valid ordered and contiguous reference data."""
     reference = create_reference()
 
     reference.validate()
 
 
-def test_validate_reject_empty_reference() -> None:
+def test_validate_rejects_empty_reference() -> None:
     """Reject an empty challenge-rating reference."""
     reference = ChallengeRatingReference(
         reference=pl.DataFrame(
@@ -176,7 +176,7 @@ def test_validate_rejects_legendary_dpr_gap() -> None:
 
     invalid_dataframe = reference.reference.with_columns(
         pl.when(pl.col("challenge_rating") == 2)
-        .then(pl.lit(19))
+        .then(pl.lit(23))
         .otherwise(pl.col("dpr_legend_min"))
         .alias("dpr_legend_min")
     )
@@ -241,7 +241,7 @@ def test_get_reference_base_excludes_legendary_columns() -> None:
     assert result.height == 2
 
 
-def test_get_legendary_reference_selects_expected_columns() -> None:
+def test_get_legendary_reference_excludes_standard_dpr_columns() -> None:
     """Return CR and legendary DPR columns."""
     reference = create_reference()
 
