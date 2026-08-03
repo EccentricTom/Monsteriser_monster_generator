@@ -199,6 +199,35 @@ class ChallengeRatingReference:
 
         return challenge_rating
 
+    def get_hit_point_band(self, hit_points: float) -> pl.DataFrame:
+        """Return the CR row containing the supplied hit points.
+
+        Args:
+            hit_points: Hitpoints of the monster to reference.
+
+        Returns:
+            A single-row DataFrame containing the matching CR band.
+
+        Raises:
+            ValueError: If hit_points are negative or outside the table.
+
+        """
+        if hit_points < 0:
+            raise ValueError("Hitpoints cannot be negative")
+
+        matching_rows = self.reference.filter(
+            pl.col("hit_points_min") <= hit_points,
+            pl.col("hit_points_max") >= hit_points,
+        )
+
+        if matching_rows.is_empty():
+            raise ValueError(f"Hitpoints fall outside the challenge-rating reference: {hit_points}")
+
+        if matching_rows.height > 1:
+            raise ValueError(f"Hitpoints matched multiple CR bands: {hit_points}")
+
+        return matching_rows
+
 
 def load_challenge_rating_reference(
     filepath: Path = CHALLENGE_RATING_FILE,
