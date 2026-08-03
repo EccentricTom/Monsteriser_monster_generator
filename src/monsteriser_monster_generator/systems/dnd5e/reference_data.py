@@ -72,7 +72,7 @@ class ChallengeRatingReference:
 
     def get_legendary_reference(self) -> pl.DataFrame:
         """Return the reference without standard damage columns."""
-        return self.reference.select(
+        return self.reference.drop(
             "dpr_min",
             "dpr_max",
         )
