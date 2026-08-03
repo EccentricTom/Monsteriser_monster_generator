@@ -61,6 +61,7 @@ class ChallengeRatingReference:
         self._validate_columns()
         self._validate_challenge_ratings()
         self._validate_ranges()
+        self._validate_hit_point_continuity()
         self._validate_dpr_continuity()
 
     def get_reference_base(self) -> pl.DataFrame:
@@ -119,23 +120,43 @@ class ChallengeRatingReference:
         if not invalid_rows.is_empty():
             raise ValueError("Challenge-rating reference contains invalid ranges")
 
-    def _validate_dpr_continuity(self) -> None:
-        """Validate that DPR ranges have no gaps or overlaps."""
+    def _validate_contiguous_ranges(
+        self,
+        *,
+        minimum_column: str,
+        maximum_column: str,
+        error_message: str,
+    ) -> None:
+        """Validate that a pair of range columns is contiguous."""
         ordered_reference = self.reference.sort("challenge_rating")
 
-        standard_gaps = ordered_reference.select(
-            (pl.col("dpr_min") - pl.col("dpr_max").shift(1)).alias("difference")
+        differences = ordered_reference.select(
+            (pl.col(minimum_column) - pl.col(maximum_column).shift(1)).alias("difference")
         ).drop_nulls()
 
-        if standard_gaps.filter(pl.col("difference") != 1).height:
-            raise ValueError("Standard DPR ranges must be contiguous")
+        if differences.filter(pl.col("difference") != 1).height:
+            raise ValueError(error_message)
 
-        legendary_gaps = ordered_reference.select(
-            (pl.col("dpr_legend_min") - pl.col("dpr_legend_max").shift(1)).alias("difference")
-        ).drop_nulls()
+    def _validate_hit_point_continuity(self) -> None:
+        """Validate that hit-point ranges have no gaps or overlaps."""
+        self._validate_contiguous_ranges(
+            minimum_column="hit_points_min",
+            maximum_column="hit_points_max",
+            error_message="Hit-point ranges must be contiguous",
+        )
 
-        if legendary_gaps.filter(pl.col("difference") != 1).height:
-            raise ValueError("Legendary DPR ranges must be contiguous")
+    def _validate_dpr_continuity(self) -> None:
+        """Validate that DPR ranges have no gaps or overlaps."""
+        self._validate_contiguous_ranges(
+            minimum_column="dpr_min",
+            maximum_column="dpr_max",
+            error_message="Standard DPR ranges must be contiguous",
+        )
+        self._validate_contiguous_ranges(
+            minimum_column="dpr_legend_min",
+            maximum_column="dpr_legend_max",
+            error_message="Legendary DPR ranges must be contiguous",
+        )
 
     def get_dpr_band(
         self,
@@ -199,6 +220,25 @@ class ChallengeRatingReference:
 
         return challenge_rating
 
+    def get_hit_point_cr(
+        self,
+        hit_points: float,
+    ) -> int:
+        """Return the challenge rating associated with a DPR value."""
+        matching_band = self.get_hit_point_band(
+            hit_points,
+        )
+
+        challenge_rating = matching_band.item(
+            0,
+            "challenge_rating",
+        )
+
+        if not isinstance(challenge_rating, int):
+            raise TypeError("Challenge-rating value must be an integer")
+
+        return challenge_rating
+
     def get_hit_point_band(self, hit_points: float) -> pl.DataFrame:
         """Return the CR row containing the supplied hit points.
 
@@ -213,7 +253,7 @@ class ChallengeRatingReference:
 
         """
         if hit_points < 0:
-            raise ValueError("Hitpoints cannot be negative")
+            raise ValueError("Hit points cannot be negative")
 
         matching_rows = self.reference.filter(
             pl.col("hit_points_min") <= hit_points,
@@ -221,10 +261,12 @@ class ChallengeRatingReference:
         )
 
         if matching_rows.is_empty():
-            raise ValueError(f"Hitpoints fall outside the challenge-rating reference: {hit_points}")
+            raise ValueError(
+                f"Hit points fall outside the challenge-rating reference: {hit_points}"
+            )
 
         if matching_rows.height > 1:
-            raise ValueError(f"Hitpoints matched multiple CR bands: {hit_points}")
+            raise ValueError(f"Hit points matched multiple CR bands: {hit_points}")
 
         return matching_rows
 
