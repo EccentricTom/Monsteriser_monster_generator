@@ -1,6 +1,6 @@
 """Calculate the raw average damage for D&D 5E 2024 monster actions for Multiattacks."""
 
-from monsteriser_monster_generator.systems.dnd5e.calculations import (
+from monsteriser_monster_generator.systems.dnd5e.calculations.offensive.damage import (
     calculate_action_average_damage,
     calculate_multiattack_routine_damage,
     find_maximum_damage_multiattack_routine,

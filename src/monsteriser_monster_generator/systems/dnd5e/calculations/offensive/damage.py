@@ -2,15 +2,15 @@
 
 from collections.abc import Mapping
 
-from ..models.actions import (
+from ...models.actions import (
     AttackAction,
     MonsterAction,
     MultiattackAction,
     MultiattackRoutine,
     SavingThrowAction,
 )
-from ..models.base_monster import BaseMonster
-from .combat_routines import TurnRoutine, generate_turn_routines
+from ...models.base_monster import BaseMonster
+from ..combat_routines import TurnRoutine, generate_turn_routines
 
 
 def calculate_action_average_damage(

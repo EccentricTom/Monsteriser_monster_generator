@@ -5,15 +5,17 @@ from collections.abc import Callable
 import pytest
 from pytest import raises
 
-from monsteriser_monster_generator.systems.dnd5e.calculations.defensive_health import (
+from monsteriser_monster_generator.systems.dnd5e.calculations.defensive.damage_adjustments import (
     DAMAGE_ADJUSTMENT_POLICY,
-    DefensiveHealthResult,
-    calculate_effective_hit_points,
     describe_damage_adjustment_policy,
-    get_adjusted_damage_types,
     get_immunity_hit_point_multiplier,
     get_resistance_hit_point_multiplier,
+    has_significant_damage_adjustments,
     validate_damage_adjustment_categories,
+)
+from monsteriser_monster_generator.systems.dnd5e.calculations.defensive.effective_health import (
+    calculate_damage_adjustment_multiplier,
+    get_adjusted_damage_types,
 )
 from monsteriser_monster_generator.systems.dnd5e.models.base_monster import (
     BaseMonster,
@@ -24,117 +26,6 @@ from monsteriser_monster_generator.systems.dnd5e.models.damage_adjustments impor
     Resistance,
     Vulnerability,
 )
-
-
-def test_calculate_effective_hit_points_without_multiplier() -> None:
-    """Return base HP when no defensive multiplier applies."""
-    monster = BaseMonster(
-        name="Test Monster",
-        hitpoints=40,
-    )
-
-    result = calculate_effective_hit_points(
-        monster=monster,
-    )
-
-    assert result == DefensiveHealthResult(
-        base_hit_points=40,
-        hit_point_multiplier=1.0,
-        effective_hit_points=40.0,
-    )
-
-
-def test_calculate_effective_hit_points_applies_multiplier() -> None:
-    """Apply the supplied defensive HP multiplier."""
-    monster = BaseMonster(
-        name="Test Monster",
-        hitpoints=40,
-    )
-
-    result = calculate_effective_hit_points(
-        monster=monster,
-        hit_point_multiplier=1.5,
-    )
-
-    assert result == DefensiveHealthResult(
-        base_hit_points=40,
-        hit_point_multiplier=1.5,
-        effective_hit_points=60.0,
-    )
-
-
-def test_calculate_effective_hit_points_accepts_fractional_result() -> None:
-    """Preserve fractional effective hit points."""
-    monster = BaseMonster(
-        name="Test Monster",
-        hitpoints=35,
-    )
-
-    result = calculate_effective_hit_points(
-        monster=monster,
-        hit_point_multiplier=1.5,
-    )
-
-    assert result.effective_hit_points == 52.5
-
-
-def test_calculate_effective_hit_points_rejects_zero_multiplier() -> None:
-    """Reject a zero hit-point multiplier."""
-    monster = BaseMonster(
-        name="Test Monster",
-        hitpoints=40,
-    )
-
-    with raises(
-        ValueError,
-        match="Hit-point multiplier must be positive",
-    ):
-        calculate_effective_hit_points(
-            monster=monster,
-            hit_point_multiplier=0.0,
-        )
-
-
-@pytest.mark.parametrize(
-    "hitpoints",
-    [0, -2],
-)
-def test_calculate_effective_hit_points_rejects_non_positive_hit_points(hitpoints: int) -> None:
-    """Reject a monster with non-positive points."""
-    monster = BaseMonster(
-        name="Test Monster",
-        hitpoints=hitpoints,
-    )
-
-    with raises(ValueError, match="Monster hit points must be positive"):
-        calculate_effective_hit_points(monster=monster)
-
-
-@pytest.mark.parametrize(
-    "multiplier",
-    [
-        0.0,
-        -1.0,
-        -0.5,
-    ],
-)
-def test_calculate_effective_hit_points_rejects_invalid_multiplier(
-    multiplier: float,
-) -> None:
-    """Reject non-positive hit-point multipliers."""
-    monster = BaseMonster(
-        name="Test Monster",
-        hitpoints=40,
-    )
-
-    with raises(
-        ValueError,
-        match="Hit-point multiplier must be positive",
-    ):
-        calculate_effective_hit_points(
-            monster=monster,
-            hit_point_multiplier=multiplier,
-        )
 
 
 def test_get_adjusted_damage_types_returns_unique_types() -> None:
@@ -375,5 +266,243 @@ def test_validate_damage_adjustment_categories_reports_all_overlaps() -> None:
         match=("Damage types cannot appear in multiple adjustment categories: cold, fire"),
     ):
         validate_damage_adjustment_categories(
+            monster=monster,
+        )
+
+
+@pytest.mark.parametrize(
+    ("adjustments", "expected"),
+    [
+        (
+            [
+                Resistance(damage_type="fire"),
+                Resistance(damage_type="cold"),
+            ],
+            False,
+        ),
+        (
+            [
+                Resistance(damage_type="fire"),
+                Resistance(damage_type="cold"),
+                Resistance(damage_type="lightning"),
+            ],
+            True,
+        ),
+        (
+            [
+                Resistance(damage_type="fire"),
+                Resistance(damage_type="fire"),
+                Resistance(damage_type="cold"),
+            ],
+            False,
+        ),
+    ],
+)
+def test_has_significant_damage_adjustments(
+    adjustments: list[DamageAdjustment],
+    expected: bool,
+) -> None:
+    """Determine significance from unique damage types."""
+    result = has_significant_damage_adjustments(
+        adjustments,
+    )
+
+    assert result is expected
+
+
+def test_damage_adjustment_multiplier_defaults_to_one() -> None:
+    """Return no adjustment when the monster has none."""
+    monster = BaseMonster(
+        name="Test Monster",
+        expected_cr=5,
+    )
+
+    result = calculate_damage_adjustment_multiplier(
+        monster=monster,
+    )
+
+    assert result == 1.0
+
+
+def test_damage_adjustment_multiplier_ignores_insignificant_resistance() -> None:
+    """Ignore fewer than three unique resistances."""
+    monster = BaseMonster(
+        name="Test Monster",
+        resistances=[
+            Resistance(damage_type="fire"),
+            Resistance(damage_type="cold"),
+        ],
+        expected_cr=5,
+    )
+
+    result = calculate_damage_adjustment_multiplier(
+        monster=monster,
+    )
+
+    assert result == 1.0
+
+
+def test_damage_adjustment_multiplier_applies_resistance() -> None:
+    """Apply the CR-based resistance multiplier."""
+    monster = BaseMonster(
+        name="Test Monster",
+        resistances=[
+            Resistance(damage_type="fire"),
+            Resistance(damage_type="cold"),
+            Resistance(damage_type="lightning"),
+        ],
+        expected_cr=5,
+    )
+
+    result = calculate_damage_adjustment_multiplier(
+        monster=monster,
+    )
+
+    assert result == 1.5
+
+
+def test_damage_adjustment_multiplier_applies_immunity() -> None:
+    """Apply the CR-based immunity multiplier."""
+    monster = BaseMonster(
+        name="Test Monster",
+        immunities=[
+            Immunity(damage_type="fire"),
+            Immunity(damage_type="cold"),
+            Immunity(damage_type="lightning"),
+        ],
+        expected_cr=11,
+    )
+
+    result = calculate_damage_adjustment_multiplier(
+        monster=monster,
+    )
+
+    assert result == 1.5
+
+
+def test_damage_adjustment_multiplier_prefers_immunity_over_resistance() -> None:
+    """Use immunity rather than stacking qualifying defenses."""
+    monster = BaseMonster(
+        name="Test Monster",
+        resistances=[
+            Resistance(damage_type="fire"),
+            Resistance(damage_type="cold"),
+            Resistance(damage_type="lightning"),
+        ],
+        immunities=[
+            Immunity(damage_type="poison"),
+            Immunity(damage_type="psychic"),
+            Immunity(damage_type="necrotic"),
+        ],
+        expected_cr=5,
+    )
+
+    result = calculate_damage_adjustment_multiplier(
+        monster=monster,
+    )
+
+    assert result == 2.0
+
+
+def test_damage_adjustment_multiplier_applies_vulnerability() -> None:
+    """Halve effective HP for significant vulnerabilities."""
+    monster = BaseMonster(
+        name="Test Monster",
+        vulnerabilities=[
+            Vulnerability(damage_type="fire"),
+            Vulnerability(damage_type="cold"),
+            Vulnerability(damage_type="radiant"),
+        ],
+        expected_cr=5,
+    )
+
+    result = calculate_damage_adjustment_multiplier(
+        monster=monster,
+    )
+
+    assert result == 0.5
+
+
+def test_damage_adjustment_multiplier_ignores_insignificant_vulnerability() -> None:
+    """Ignore fewer than three unique vulnerabilities."""
+    monster = BaseMonster(
+        name="Test Monster",
+        vulnerabilities=[
+            Vulnerability(damage_type="fire"),
+            Vulnerability(damage_type="cold"),
+        ],
+        expected_cr=5,
+    )
+
+    result = calculate_damage_adjustment_multiplier(
+        monster=monster,
+    )
+
+    assert result == 1.0
+
+
+def test_damage_adjustment_multiplier_combines_resistance_and_vulnerability() -> None:
+    """Apply vulnerability after a qualifying resistance multiplier."""
+    monster = BaseMonster(
+        name="Test Monster",
+        resistances=[
+            Resistance(damage_type="fire"),
+            Resistance(damage_type="cold"),
+            Resistance(damage_type="lightning"),
+        ],
+        vulnerabilities=[
+            Vulnerability(damage_type="radiant"),
+            Vulnerability(damage_type="psychic"),
+            Vulnerability(damage_type="force"),
+        ],
+        expected_cr=5,
+    )
+
+    result = calculate_damage_adjustment_multiplier(
+        monster=monster,
+    )
+
+    assert result == 0.75
+
+
+def test_damage_adjustment_multiplier_combines_immunity_and_vulnerability() -> None:
+    """Apply vulnerability after a qualifying immunity multiplier."""
+    monster = BaseMonster(
+        name="Test Monster",
+        immunities=[
+            Immunity(damage_type="fire"),
+            Immunity(damage_type="cold"),
+            Immunity(damage_type="lightning"),
+        ],
+        vulnerabilities=[
+            Vulnerability(damage_type="radiant"),
+            Vulnerability(damage_type="psychic"),
+            Vulnerability(damage_type="force"),
+        ],
+        expected_cr=5,
+    )
+
+    result = calculate_damage_adjustment_multiplier(
+        monster=monster,
+    )
+
+    assert result == 1.0
+
+
+@pytest.mark.parametrize(
+    "expected_challenge_rating",
+    [0, -1],
+)
+def test_damage_adjustment_multiplier_rejects_non_positive_cr(
+    expected_challenge_rating: int,
+) -> None:
+    """Reject a non-positive expected challenge rating."""
+    monster = BaseMonster(name="Test Monster", expected_cr=expected_challenge_rating)
+
+    with raises(
+        ValueError,
+        match="Expected challenge rating must be positive",
+    ):
+        calculate_damage_adjustment_multiplier(
             monster=monster,
         )

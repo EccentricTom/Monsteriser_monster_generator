@@ -1,6 +1,6 @@
 """Calculate the raw average damage for D&D 5E 2024 monster actions for single attacks."""
 
-from monsteriser_monster_generator.systems.dnd5e.calculations import (
+from monsteriser_monster_generator.systems.dnd5e.calculations.offensive.damage import (
     calculate_action_average_damage,
 )
 from monsteriser_monster_generator.systems.dnd5e.models.actions import (

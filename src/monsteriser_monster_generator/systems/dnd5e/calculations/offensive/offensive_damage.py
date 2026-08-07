@@ -3,9 +3,9 @@
 from collections.abc import Mapping
 from dataclasses import dataclass
 
-from ..models.actions import LimitedUsage, MonsterAction, RechargeUsage
-from ..models.base_monster import BaseMonster
-from .combat_routines import (
+from ...models.actions import LimitedUsage, MonsterAction, RechargeUsage
+from ...models.base_monster import BaseMonster
+from ..combat_routines import (
     TurnRoutine,
     generate_repeatable_turn_routines,
 )

@@ -4,7 +4,7 @@ from dataclasses import replace
 
 from pytest import raises
 
-from monsteriser_monster_generator.systems.dnd5e.calculations import (
+from monsteriser_monster_generator.systems.dnd5e.calculations.offensive.usage_damage import (
     calculate_limited_use_action_average_damage,
     calculate_limited_use_average_damage,
 )

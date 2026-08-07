@@ -2,8 +2,8 @@
 
 from dataclasses import dataclass
 
-from ..models.base_monster import BaseMonster
-from ..reference_data import ChallengeRatingReference
+from ...models.base_monster import BaseMonster
+from ...reference_data import ChallengeRatingReference
 from .offensive_damage import (
     OffensiveDamageResult,
     calculate_monster_offensive_damage,

@@ -2,7 +2,7 @@
 
 from pytest import raises
 
-from monsteriser_monster_generator.systems.dnd5e.calculations import (
+from monsteriser_monster_generator.systems.dnd5e.calculations.offensive.damage import (
     TurnRoutine,
     calculate_turn_routine_damage,
     find_maximum_damage_turn,
