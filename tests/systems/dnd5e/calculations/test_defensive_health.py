@@ -1,14 +1,27 @@
 """Test D&D 5E 2024 defensive health calculations."""
 
+from collections.abc import Callable
+
 import pytest
 from pytest import raises
 
 from monsteriser_monster_generator.systems.dnd5e.calculations.defensive_health import (
+    DAMAGE_ADJUSTMENT_POLICY,
     DefensiveHealthResult,
     calculate_effective_hit_points,
+    describe_damage_adjustment_policy,
+    get_adjusted_damage_types,
+    get_immunity_hit_point_multiplier,
+    get_resistance_hit_point_multiplier,
 )
 from monsteriser_monster_generator.systems.dnd5e.models.base_monster import (
     BaseMonster,
+)
+from monsteriser_monster_generator.systems.dnd5e.models.damage_adjustments import (
+    DamageAdjustment,
+    Immunity,
+    Resistance,
+    Vulnerability,
 )
 
 
@@ -86,7 +99,7 @@ def test_calculate_effective_hit_points_rejects_zero_multiplier() -> None:
     [0, -2],
 )
 def test_calculate_effective_hit_points_rejects_non_positive_hit_points(hitpoints: int) -> None:
-    """Reject a monster with non-positive points"""
+    """Reject a monster with non-positive points."""
     monster = BaseMonster(
         name="Test Monster",
         hitpoints=hitpoints,
@@ -121,3 +134,154 @@ def test_calculate_effective_hit_points_rejects_invalid_multiplier(
             monster=monster,
             hit_point_multiplier=multiplier,
         )
+
+
+def test_get_adjusted_damage_types_returns_unique_types() -> None:
+    """Return each adjusted damage type only once."""
+    adjustments = [
+        Resistance(damage_type="fire"),
+        Resistance(damage_type="cold"),
+        Resistance(damage_type="fire"),
+    ]
+
+    result = get_adjusted_damage_types(adjustments)
+
+    assert result == frozenset(
+        {
+            "fire",
+            "cold",
+        }
+    )
+
+
+def test_get_adjusted_damage_types_accepts_all_adjustment_types() -> None:
+    """Normalize all supported damage-adjustment subclasses."""
+    adjustments: list[DamageAdjustment] = [
+        Resistance(damage_type="fire"),
+        Immunity(damage_type="poison"),
+        Vulnerability(damage_type="radiant"),
+    ]
+
+    result = get_adjusted_damage_types(adjustments)
+
+    assert result == frozenset(
+        {
+            "fire",
+            "poison",
+            "radiant",
+        }
+    )
+
+
+def test_get_adjusted_damage_types_accepts_empty_adjustments() -> None:
+    """Return an empty set when no adjustments are supplied."""
+    result = get_adjusted_damage_types([])
+
+    assert result == frozenset()
+
+
+@pytest.mark.parametrize(
+    ("challenge_rating", "expected_multiplier"),
+    [
+        (1, 2.0),
+        (4, 2.0),
+        (5, 1.5),
+        (10, 1.5),
+        (11, 1.25),
+        (16, 1.25),
+        (17, 1.0),
+        (30, 1.0),
+    ],
+)
+def test_get_resistance_hit_point_multiplier(
+    challenge_rating: int,
+    expected_multiplier: float,
+) -> None:
+    """Return the resistance multiplier for the CR range."""
+    result = get_resistance_hit_point_multiplier(
+        expected_challenge_rating=challenge_rating,
+    )
+
+    assert result == expected_multiplier
+
+
+@pytest.mark.parametrize(
+    ("challenge_rating", "expected_multiplier"),
+    [
+        (1, 2.0),
+        (4, 2.0),
+        (5, 2.0),
+        (10, 2.0),
+        (11, 1.5),
+        (16, 1.5),
+        (17, 1.25),
+        (30, 1.25),
+    ],
+)
+def test_get_immunity_hit_point_multiplier(
+    challenge_rating: int,
+    expected_multiplier: float,
+) -> None:
+    """Return the immunity multiplier for the CR range."""
+    result = get_immunity_hit_point_multiplier(
+        expected_challenge_rating=challenge_rating,
+    )
+
+    assert result == expected_multiplier
+
+
+@pytest.mark.parametrize(
+    "challenge_rating",
+    [0, -1],
+)
+@pytest.mark.parametrize(
+    "multiplier_function",
+    [
+        get_resistance_hit_point_multiplier,
+        get_immunity_hit_point_multiplier,
+    ],
+)
+def test_hit_point_multiplier_rejects_non_positive_cr(
+    challenge_rating: int,
+    multiplier_function: Callable[..., float],
+) -> None:
+    """Reject a non-positive expected challenge rating."""
+    with raises(
+        ValueError,
+        match="Expected challenge rating must be positive",
+    ):
+        multiplier_function(
+            expected_challenge_rating=challenge_rating,
+        )
+
+
+def test_damage_adjustment_policy_defaults() -> None:
+    """Expose the expected default damage-adjustment policy."""
+    policy = DAMAGE_ADJUSTMENT_POLICY
+
+    assert policy.significance_threshold == 3
+    assert policy.vulnerability_multiplier == 0.5
+    assert policy.immunity_overrides_resistance
+    assert not policy.allow_cross_category_duplicates
+    assert not policy.distinguish_physical_damage
+
+
+def test_describe_damage_adjustment_policy_includes_threshold() -> None:
+    """Describe the configured significance threshold."""
+    result = describe_damage_adjustment_policy()
+
+    assert "At least 3 unique damage types" in result
+
+
+def test_describe_damage_adjustment_policy_includes_vulnerability_multiplier() -> None:
+    """Describe the configured vulnerability multiplier."""
+    result = describe_damage_adjustment_policy()
+
+    assert "×0.5 hit-point multiplier" in result
+
+
+def test_describe_damage_adjustment_policy_explains_immunity_precedence() -> None:
+    """Explain that immunity takes precedence over resistance."""
+    result = describe_damage_adjustment_policy()
+
+    assert "immunity takes precedence" in result
