@@ -52,6 +52,49 @@ def describe_damage_adjustment_policy() -> str:
     )
 
 
+def validate_damage_adjustment_categories(
+    *,
+    monster: BaseMonster,
+) -> None:
+    """Validate that damage types do not span mulitple categories.
+
+    Args:
+        monster: Monster whose damage adjustments are being validated.
+
+    Raises:
+        ValueError: If a damage type appears in more than one adjustment category.
+
+    """
+    if DAMAGE_ADJUSTMENT_POLICY.allow_cross_category_duplicates:
+        return
+
+    resistance_types = get_adjusted_damage_types(
+        monster.resistances,
+    )
+
+    immune_types = get_adjusted_damage_types(monster.immunities)
+
+    vulnerability_types = get_adjusted_damage_types(monster.vulnerabilities)
+
+    resistence_immunity_overlaps = resistance_types & immune_types
+
+    resistance_vulnerability_overlaps = resistance_types & vulnerability_types
+
+    immunity_vulnerability_overaps = immune_types & vulnerability_types
+
+    overlapping_types = (
+        resistence_immunity_overlaps
+        | resistance_vulnerability_overlaps
+        | immunity_vulnerability_overaps
+    )
+
+    if overlapping_types:
+        formatted_types = ", ".join(sorted(overlapping_types))
+        raise ValueError(
+            f"Damage types cannot appear in multiple adjustment categories: {formatted_types}"
+        )
+
+
 @dataclass(kw_only=True, frozen=True, slots=True)
 class DefensiveHealthResult:
     """Summarise the effective hit-point calculations.
@@ -190,3 +233,14 @@ def has_significant_damage_adjustments(
     adjusted_types = get_adjusted_damage_types(adjustments=adjustments)
 
     return len(adjusted_types) >= DAMAGE_ADJUSTMENT_POLICY.significance_threshold
+
+
+def calculate_damage_adjustment_multiplier(
+    *,
+    monster: BaseMonster,
+) -> float:
+    """Calculate the effective-HP multiplier from damage adjustments."""
+    expected_challenge_rating = monster.expected_cr
+
+    if expected_challenge_rating <= 0:
+        raise ValueError("Expected challenge rating must be positive")

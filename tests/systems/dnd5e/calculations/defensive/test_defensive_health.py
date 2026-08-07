@@ -13,6 +13,7 @@ from monsteriser_monster_generator.systems.dnd5e.calculations.defensive_health i
     get_adjusted_damage_types,
     get_immunity_hit_point_multiplier,
     get_resistance_hit_point_multiplier,
+    validate_damage_adjustment_categories,
 )
 from monsteriser_monster_generator.systems.dnd5e.models.base_monster import (
     BaseMonster,
@@ -285,3 +286,94 @@ def test_describe_damage_adjustment_policy_explains_immunity_precedence() -> Non
     result = describe_damage_adjustment_policy()
 
     assert "immunity takes precedence" in result
+
+
+def test_validate_damage_adjustment_categories_accepts_distinct_types() -> None:
+    """Accept damage types that occur in only one category."""
+    monster = BaseMonster(
+        name="Test Monster",
+        resistances=[
+            Resistance(damage_type="fire"),
+        ],
+        immunities=[
+            Immunity(damage_type="poison"),
+        ],
+        vulnerabilities=[
+            Vulnerability(damage_type="radiant"),
+        ],
+    )
+
+    validate_damage_adjustment_categories(
+        monster=monster,
+    )
+
+
+@pytest.mark.parametrize(
+    ("resistances", "immunities", "vulnerabilities", "expected_type"),
+    [
+        (
+            [Resistance(damage_type="fire")],
+            [Immunity(damage_type="fire")],
+            [],
+            "fire",
+        ),
+        (
+            [Resistance(damage_type="cold")],
+            [],
+            [Vulnerability(damage_type="cold")],
+            "cold",
+        ),
+        (
+            [],
+            [Immunity(damage_type="poison")],
+            [Vulnerability(damage_type="poison")],
+            "poison",
+        ),
+    ],
+)
+def test_validate_damage_adjustment_categories_rejects_overlap(
+    resistances: list[Resistance],
+    immunities: list[Immunity],
+    vulnerabilities: list[Vulnerability],
+    expected_type: str,
+) -> None:
+    """Reject damage types that occur in multiple adjustment categories."""
+    monster = BaseMonster(
+        name="Test Monster",
+        resistances=resistances,
+        immunities=immunities,
+        vulnerabilities=vulnerabilities,
+    )
+
+    with raises(
+        ValueError,
+        match=(f"Damage types cannot appear in multiple adjustment categories: {expected_type}"),
+    ):
+        validate_damage_adjustment_categories(
+            monster=monster,
+        )
+
+
+def test_validate_damage_adjustment_categories_reports_all_overlaps() -> None:
+    """Report every damage type found in multiple categories."""
+    monster = BaseMonster(
+        name="Test Monster",
+        resistances=[
+            Resistance(damage_type="fire"),
+            Resistance(damage_type="cold"),
+        ],
+        immunities=[
+            Immunity(damage_type="fire"),
+        ],
+        vulnerabilities=[
+            Vulnerability(damage_type="cold"),
+        ],
+    )
+
+    with raises(
+        ValueError,
+        match=("Damage types cannot appear in multiple adjustment categories: cold, fire"),
+    ):
+        validate_damage_adjustment_categories(
+            monster=monster,
+        )
