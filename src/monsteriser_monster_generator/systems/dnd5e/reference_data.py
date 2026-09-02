@@ -8,7 +8,7 @@ from typing import TypedDict, cast
 import polars as pl
 
 SYSTEM_DIRECTORY = Path(__file__).resolve().parent
-DATA_DIRECTORY = SYSTEM_DIRECTORY / "data" / "fifth_edition"
+DATA_DIRECTORY = SYSTEM_DIRECTORY / "data"
 
 CHALLENGE_RATING_FILE = DATA_DIRECTORY / "baseline_stats.csv"
 GEAR_FILE = DATA_DIRECTORY / "gear.json"

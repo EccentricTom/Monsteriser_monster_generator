@@ -1,5 +1,12 @@
 """Expose D&D 5E combat calculations."""
 
+from .challenge_rating import (
+    CHALLENGE_RATING_POLICY,
+    ChallengeRatingPolicy,
+    ChallengeRatingResult,
+    calculate_monster_challenge_rating,
+    combine_challenge_ratings,
+)
 from .combat_routines import (
     TurnRoutine,
     generate_repeatable_turn_routines,
@@ -19,15 +26,20 @@ from .offensive import (
 )
 
 __all__ = [
+    "CHALLENGE_RATING_POLICY",
+    "ChallengeRatingPolicy",
+    "ChallengeRatingResult",
     "DefensiveChallengeRatingResult",
     "DefensiveHealthResult",
     "OffensiveChallengeRatingResult",
     "OffensiveDamageResult",
     "TurnRoutine",
     "calculate_effective_hit_points",
+    "calculate_monster_challenge_rating",
     "calculate_monster_defensive_cr",
     "calculate_monster_offensive_cr",
     "calculate_monster_offensive_damage",
+    "combine_challenge_ratings",
     "generate_repeatable_turn_routines",
     "generate_turn_routines",
 ]
