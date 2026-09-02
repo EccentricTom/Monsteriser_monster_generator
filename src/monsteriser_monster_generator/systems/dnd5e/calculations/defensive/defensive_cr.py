@@ -4,6 +4,10 @@ from dataclasses import dataclass
 
 from ...models.base_monster import BaseMonster
 from ...reference_data import ChallengeRatingReference
+from .armor_class import (
+    ArmorClassAdjustmentResult,
+    calculate_armor_class_adjustment,
+)
 from .effective_health import (
     DefensiveHealthResult,
     calculate_effective_hit_points,
@@ -22,9 +26,9 @@ class DefensiveChallengeRatingResult:
 
     """
 
+    hit_point_challenge_rating: int
     challenge_rating: int
-    expected_armor_class: int
-    actual_armor_class: int
+    armor_class: ArmorClassAdjustmentResult
     health: DefensiveHealthResult
 
 
@@ -51,17 +55,24 @@ def calculate_monster_defensive_cr(
         monster=monster,
     )
 
-    challenge_rating = reference.get_hit_point_cr(
+    hit_point_challenge_rating = reference.get_hit_point_cr(
         health_result.effective_hit_points,
     )
 
     expected_armor_class = reference.get_expected_armor_class(
-        challenge_rating=challenge_rating,
+        challenge_rating=hit_point_challenge_rating,
     )
 
-    return DefensiveChallengeRatingResult(
-        challenge_rating=challenge_rating,
-        expected_armor_class=expected_armor_class,
+    armor_class_result = calculate_armor_class_adjustment(
         actual_armor_class=monster.armor_class,
+        expected_armor_class=expected_armor_class,
+    )
+
+    challenge_rating = hit_point_challenge_rating + armor_class_result.challenge_rating_adjustment
+
+    return DefensiveChallengeRatingResult(
+        hit_point_challenge_rating=hit_point_challenge_rating,
+        challenge_rating=challenge_rating,
+        armor_class=armor_class_result,
         health=health_result,
     )
