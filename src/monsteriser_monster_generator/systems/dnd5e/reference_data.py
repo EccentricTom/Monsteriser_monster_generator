@@ -295,6 +295,36 @@ class ChallengeRatingReference:
 
         return armor_class
 
+    def clamp_challenge_rating(
+        self,
+        challenge_rating: int,
+    ) -> int:
+        """Clamp a challenge rating to the loaded reference range.
+
+        Args:
+            challenge_rating: Challenge rating to constrain.
+
+        Returns:
+            Challenge rating within the loaded reference bounds.
+
+        """
+        minimum_challenge_rating = self.reference["challenge_rating"].min()
+        maximum_challenge_rating = self.reference["challenge_rating"].max()
+
+        if not isinstance(minimum_challenge_rating, int):
+            raise TypeError("Minimum challenge-rating reference value must be an integer")
+
+        if not isinstance(maximum_challenge_rating, int):
+            raise TypeError("Maximum challenge-rating reference value must be an integer")
+
+        return min(
+            max(
+                challenge_rating,
+                minimum_challenge_rating,
+            ),
+            maximum_challenge_rating,
+        )
+
 
 def load_challenge_rating_reference(
     filepath: Path = CHALLENGE_RATING_FILE,
@@ -369,3 +399,24 @@ def load_gear_reference(
     reference = cast(GearReferenceData, raw_reference)
 
     return GearReference(full_reference=reference)
+
+
+def test_clamp_challenge_rating_keeps_rating_within_range(
+    challenge_rating_reference: ChallengeRatingReference,
+) -> None:
+    """Keep an already valid challenge rating unchanged."""
+    assert challenge_rating_reference.clamp_challenge_rating(2) == 2
+
+
+def test_clamp_challenge_rating_to_minimum(
+    challenge_rating_reference: ChallengeRatingReference,
+) -> None:
+    """Clamp challenge ratings below the reference minimum."""
+    assert challenge_rating_reference.clamp_challenge_rating(-3) == 1
+
+
+def test_clamp_challenge_rating_to_maximum(
+    challenge_rating_reference: ChallengeRatingReference,
+) -> None:
+    """Clamp challenge ratings above the reference maximum."""
+    assert challenge_rating_reference.clamp_challenge_rating(10) == 2

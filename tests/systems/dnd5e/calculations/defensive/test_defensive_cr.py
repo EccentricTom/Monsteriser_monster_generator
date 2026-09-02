@@ -77,6 +77,7 @@ def test_calculate_monster_defensive_cr_uses_effective_hit_points() -> None:
     assert result == DefensiveChallengeRatingResult(
         hit_point_challenge_rating=1,
         challenge_rating=1,
+        adjusted_challenge_rating=1,
         armor_class=ArmorClassAdjustmentResult(
             actual_armor_class=14,
             expected_armor_class=14,
@@ -238,3 +239,41 @@ def test_calculate_monster_defensive_cr_ignores_one_point_ac_difference() -> Non
     assert result.armor_class.difference == 1
     assert result.armor_class.challenge_rating_adjustment == 0
     assert result.challenge_rating == 1
+
+
+def test_calculate_monster_defensive_cr_clamps_to_minimum_cr() -> None:
+    """Prevent AC adjustment from reducing CR below the reference."""
+    monster = BaseMonster(
+        name="Low AC Monster",
+        hitpoints=30,
+        dexterity=6,
+        expected_cr=1,
+    )
+
+    result = calculate_monster_defensive_cr(
+        monster=monster,
+        reference=create_reference(),
+    )
+
+    assert result.hit_point_challenge_rating == 1
+    assert result.armor_class.challenge_rating_adjustment == -3
+    assert result.challenge_rating == 1
+
+
+def test_calculate_monster_defensive_cr_clamps_to_maximum_cr() -> None:
+    """Prevent AC adjustment from exceeding the reference maximum."""
+    monster = BaseMonster(
+        name="High AC Monster",
+        hitpoints=40,
+        dexterity=24,
+        expected_cr=2,
+    )
+
+    result = calculate_monster_defensive_cr(
+        monster=monster,
+        reference=create_reference(),
+    )
+
+    assert result.hit_point_challenge_rating == 2
+    assert result.armor_class.challenge_rating_adjustment == 1
+    assert result.challenge_rating == 2
