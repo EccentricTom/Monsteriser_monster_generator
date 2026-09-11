@@ -355,6 +355,36 @@ class ChallengeRatingReference:
 
         return valid_ratings[-1]
 
+    def get_expected_attack_bonus(
+        self,
+        *,
+        challenge_rating: float,
+    ) -> int:
+        """Return the expected attack bonus for a challenge rating."""
+        matching_rows = self.reference.filter(pl.col("challenge_rating") == challenge_rating)
+
+        if matching_rows.is_empty():
+            raise ValueError(
+                f"Challenge rating falls outside the challenge-rating reference: {challenge_rating}"
+            )
+
+        return int(matching_rows.item(0, "attack_bonus"))
+
+    def get_expected_save_dc(
+        self,
+        *,
+        challenge_rating: float,
+    ) -> int:
+        """Return the expected save DC for a challenge rating."""
+        matching_rows = self.reference.filter(pl.col("challenge_rating") == challenge_rating)
+
+        if matching_rows.is_empty():
+            raise ValueError(
+                f"Challenge rating falls outside the challenge-rating reference: {challenge_rating}"
+            )
+
+        return int(matching_rows.item(0, "save_dc"))
+
 
 def load_challenge_rating_reference(
     filepath: Path = CHALLENGE_RATING_FILE,
