@@ -1,15 +1,26 @@
+"""Tests for accuracy.py."""
+
 import pytest
 
 from monsteriser_monster_generator.systems.dnd5e.calculations.offensive.accuracy import (
     OffensiveAccuracy,
     OffensiveAccuracyAdjustment,
+    OffensiveAccuracyContribution,
+    RepresentativeOffensiveAccuracy,
     calculate_offensive_accuracy_adjustment,
+    calculate_representative_offensive_accuracy,
+    get_action_accuracy_contribution,
     get_action_offensive_accuracy,
+    get_multiattack_accuracy_contributions,
 )
 from monsteriser_monster_generator.systems.dnd5e.models.actions import (
     AttackAction,
+    DamageRoll,
+    FixedActionUse,
     MonsterAction,
+    MultiattackAction,
     SavingThrowAction,
+    SavingThrowDamage,
 )
 
 
@@ -101,3 +112,289 @@ def test_get_none_offensive_accuracy() -> None:
     )
 
     assert get_action_offensive_accuracy(action) is None
+
+
+def test_get_attack_accuracy_contribution() -> None:
+    """Return attack accuracy weighted by action damage."""
+    action = AttackAction(
+        name="bite",
+        action_id="bite",
+        origin="natural",
+        attack_range="melee",
+        attack_bonus=7,
+        damage=(
+            DamageRoll(
+                dice_count=1,
+                die_size=12,
+                modifier=2,
+                damage_type="piercing",
+            ),
+        ),
+    )
+
+    actions_by_id = {action.action_id: action}
+
+    result = get_action_accuracy_contribution(
+        action=action,
+        actions_by_id=actions_by_id,
+    )
+
+    assert result == OffensiveAccuracyContribution(
+        accuracy=OffensiveAccuracy(
+            accuracy_type="attack_bonus",
+            value=7,
+        ),
+        damage=8.5,
+    )
+
+
+def test_get_saving_throw_accuracy_contribution() -> None:
+    """Return save DC weighted by action damage."""
+    action = SavingThrowAction(
+        action_id="fire_breath",
+        name="Fire Breath",
+        origin="natural",
+        difficulty_class=15,
+        ability="dexterity",
+        saving_throw=SavingThrowDamage(
+            damage=(
+                DamageRoll(
+                    dice_count=8,
+                    die_size=6,
+                    modifier=0,
+                    damage_type="fire",
+                ),
+            ),
+            success_outcome="half",
+        ),
+    )
+
+    actions_by_id = {action.action_id: action}
+
+    result = get_action_accuracy_contribution(
+        action=action,
+        actions_by_id=actions_by_id,
+    )
+
+    assert result == OffensiveAccuracyContribution(
+        accuracy=OffensiveAccuracy(
+            accuracy_type="save_dc",
+            value=15,
+        ),
+        damage=28.0,
+    )
+
+
+def test_get_non_damaging_accuracy_contribution() -> None:
+    """Ignore an accuracy statistic when the action deals no damage."""
+    action = SavingThrowAction(
+        action_id="fire_breath",
+        name="Fire Breath",
+        origin="natural",
+        difficulty_class=15,
+        ability="dexterity",
+    )
+
+    result = get_action_accuracy_contribution(
+        action=action,
+        actions_by_id={action.action_id: action},
+    )
+
+    assert result is None
+
+
+def test_get_action_without_accuracy_contribution() -> None:
+    """Ignore actions without an offensive accuracy statistic."""
+    action = MonsterAction(
+        action_id="misty_step",
+        name="Misty Step",
+        category="special",
+        origin="spell",
+    )
+
+    result = get_action_accuracy_contribution(
+        action=action,
+        actions_by_id={action.action_id: action},
+    )
+
+    assert result is None
+
+
+def test_get_multiattack_accuracy_contributions() -> None:
+    """Return accuracy contributions for the strongest multiattack routine."""
+    bite = AttackAction(
+        action_id="bite",
+        name="Bite",
+        origin="natural",
+        attack_range="melee",
+        attack_bonus=7,
+        damage=(
+            DamageRoll(
+                dice_count=1,
+                die_size=12,
+                modifier=2,
+                damage_type="piercing",
+            ),
+        ),
+    )
+
+    claw = AttackAction(
+        action_id="claw",
+        name="Claw",
+        origin="natural",
+        attack_range="melee",
+        attack_bonus=5,
+        damage=(
+            DamageRoll(
+                dice_count=1,
+                die_size=6,
+                modifier=2,
+                damage_type="slashing",
+            ),
+        ),
+    )
+
+    multiattack = MultiattackAction(
+        action_id="multiattack",
+        name="Multiattack",
+        origin="natural",
+        steps=(
+            FixedActionUse(
+                action_id="bite",
+                count=2,
+            ),
+            FixedActionUse(
+                action_id="claw",
+            ),
+        ),
+    )
+
+    actions_by_id: dict[str, MonsterAction] = {
+        bite.action_id: bite,
+        claw.action_id: claw,
+        multiattack.action_id: multiattack,
+    }
+
+    result = get_multiattack_accuracy_contributions(
+        multiattack=multiattack,
+        actions_by_id=actions_by_id,
+    )
+
+    assert result == (
+        OffensiveAccuracyContribution(
+            accuracy=OffensiveAccuracy(
+                accuracy_type="attack_bonus",
+                value=7,
+            ),
+            damage=8.5,
+        ),
+        OffensiveAccuracyContribution(
+            accuracy=OffensiveAccuracy(
+                accuracy_type="attack_bonus",
+                value=7,
+            ),
+            damage=8.5,
+        ),
+        OffensiveAccuracyContribution(
+            accuracy=OffensiveAccuracy(
+                accuracy_type="attack_bonus",
+                value=5,
+            ),
+            damage=5.5,
+        ),
+    )
+
+
+def test_calculate_representative_offensive_accuracy_for_attacks() -> None:
+    """Calculate damage-weighted attack bonus."""
+    contributions = (
+        OffensiveAccuracyContribution(
+            accuracy=OffensiveAccuracy(
+                accuracy_type="attack_bonus",
+                value=8,
+            ),
+            damage=12.0,
+        ),
+        OffensiveAccuracyContribution(
+            accuracy=OffensiveAccuracy(
+                accuracy_type="attack_bonus",
+                value=6,
+            ),
+            damage=6.0,
+        ),
+    )
+
+    result = calculate_representative_offensive_accuracy(
+        contributions,
+    )
+
+    assert result == RepresentativeOffensiveAccuracy(
+        accuracy_type="attack_bonus",
+        value=7,
+        damage=18.0,
+    )
+
+
+def test_calculate_representative_offensive_accuracy_for_save_dc() -> None:
+    """Calculate damage-weighted save DC."""
+    contributions = (
+        OffensiveAccuracyContribution(
+            accuracy=OffensiveAccuracy(
+                accuracy_type="save_dc",
+                value=15,
+            ),
+            damage=20.0,
+        ),
+        OffensiveAccuracyContribution(
+            accuracy=OffensiveAccuracy(
+                accuracy_type="save_dc",
+                value=13,
+            ),
+            damage=10.0,
+        ),
+    )
+
+    result = calculate_representative_offensive_accuracy(
+        contributions,
+    )
+
+    assert result == RepresentativeOffensiveAccuracy(
+        accuracy_type="save_dc",
+        value=14,
+        damage=30.0,
+    )
+
+
+def test_calculate_representative_offensive_accuracy_uses_dominant_damage_type() -> None:
+    """Use the accuracy type responsible for most offensive damage."""
+    contributions = (
+        OffensiveAccuracyContribution(
+            accuracy=OffensiveAccuracy(
+                accuracy_type="attack_bonus",
+                value=7,
+            ),
+            damage=40.0,
+        ),
+        OffensiveAccuracyContribution(
+            accuracy=OffensiveAccuracy(
+                accuracy_type="save_dc",
+                value=16,
+            ),
+            damage=30.0,
+        ),
+    )
+
+    result = calculate_representative_offensive_accuracy(
+        contributions,
+    )
+
+    assert result == RepresentativeOffensiveAccuracy(
+        accuracy_type="attack_bonus",
+        value=7,
+        damage=40.0,
+    )
+
+
+def test_calculate_representative_offensive_accuracy_returns_none_without_contributions() -> None:
+    """Return None when no damaging accuracy contributions exist."""
+    assert calculate_representative_offensive_accuracy(()) is None
