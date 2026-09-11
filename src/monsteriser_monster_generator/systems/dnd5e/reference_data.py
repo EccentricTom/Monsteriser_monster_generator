@@ -3,7 +3,7 @@
 import json
 from dataclasses import dataclass
 from pathlib import Path
-from typing import TypedDict, cast
+from typing import Any, TypedDict, cast
 
 import polars as pl
 
@@ -13,8 +13,8 @@ DATA_DIRECTORY = SYSTEM_DIRECTORY / "data"
 CHALLENGE_RATING_FILE = DATA_DIRECTORY / "baseline_stats.csv"
 GEAR_FILE = DATA_DIRECTORY / "gear.json"
 
-CHALLENGE_RATING_SCHEMA = {
-    "challenge_rating": pl.Int64,
+CHALLENGE_RATING_SCHEMA: dict[str, Any] = {
+    "challenge_rating": pl.Float64,
     "armor_class": pl.Int64,
     "save_bonus": pl.Int64,
     "hit_points_min": pl.Int64,
@@ -210,15 +210,10 @@ class ChallengeRatingReference:
             legendary=legendary,
         )
 
-        challenge_rating = matching_band.item(
+        return matching_band.item(
             0,
             "challenge_rating",
         )
-
-        if not isinstance(challenge_rating, int):
-            raise TypeError("Challenge-rating value must be an integer")
-
-        return challenge_rating
 
     def get_hit_point_cr(
         self,
@@ -229,15 +224,10 @@ class ChallengeRatingReference:
             hit_points,
         )
 
-        challenge_rating = matching_band.item(
+        return matching_band.item(
             0,
             "challenge_rating",
         )
-
-        if not isinstance(challenge_rating, int):
-            raise TypeError("Challenge-rating value must be an integer")
-
-        return challenge_rating
 
     def get_hit_point_band(self, hit_points: float) -> pl.DataFrame:
         """Return the CR row containing the supplied hit points.
@@ -295,35 +285,75 @@ class ChallengeRatingReference:
 
         return armor_class
 
-    def clamp_challenge_rating(
+    def adjust_challenge_rating(
+        self,
+        *,
+        challenge_rating: float,
+        steps: int,
+    ) -> float:
+        """Move a challenge rating through the loaded reference by CR steps.
+
+        Args:
+            challenge_rating: Starting challenge rating.
+            steps: Number of reference rows to move. Negative values move down.
+
+        Returns:
+            Adjusted challenge rating, clamped to the reference bounds.
+
+        Raises:
+            ValueError: If the starting challenge rating is not in the reference.
+
+        """
+        challenge_ratings = (
+            self.reference.sort("challenge_rating").get_column("challenge_rating").to_list()
+        )
+
+        try:
+            current_index = challenge_ratings.index(challenge_rating)
+        except ValueError as exc:
+            raise ValueError(
+                f"Challenge rating is not present in the reference: {challenge_rating}"
+            ) from exc
+
+        adjusted_index = current_index + steps
+
+        adjusted_index = max(
+            0,
+            min(adjusted_index, len(challenge_ratings) - 1),
+        )
+
+        adjusted_challenge_rating = challenge_ratings[adjusted_index]
+
+        return float(adjusted_challenge_rating)
+
+    def get_challenge_rating_at_or_below(
         self,
         challenge_rating: float,
     ) -> float:
-        """Clamp a challenge rating to the loaded reference range.
+        """Return the highest CR not exceeding the supplied value.
 
         Args:
-            challenge_rating: Challenge rating to constrain.
+            challenge_rating: Challenge rating value to map.
 
         Returns:
-            Challenge rating within the loaded reference bounds.
+            Highest available challenge rating less than or equal to the value.
+
+        Raises:
+            ValueError: If the reference is empty.
 
         """
-        minimum_challenge_rating = self.reference["challenge_rating"].min()
-        maximum_challenge_rating = self.reference["challenge_rating"].max()
-
-        if not isinstance(minimum_challenge_rating, int):
-            raise TypeError("Minimum challenge-rating reference value must be an integer")
-
-        if not isinstance(maximum_challenge_rating, int):
-            raise TypeError("Maximum challenge-rating reference value must be an integer")
-
-        return min(
-            max(
-                challenge_rating,
-                minimum_challenge_rating,
-            ),
-            maximum_challenge_rating,
+        challenge_ratings = (
+            self.reference.sort("challenge_rating").get_column("challenge_rating").to_list()
         )
+
+        valid_ratings = [
+            float(rating) for rating in challenge_ratings if rating <= challenge_rating
+        ]
+
+        if not valid_ratings:
+            return float(challenge_ratings[0])
+
+        return valid_ratings[-1]
 
 
 def load_challenge_rating_reference(
@@ -399,24 +429,3 @@ def load_gear_reference(
     reference = cast(GearReferenceData, raw_reference)
 
     return GearReference(full_reference=reference)
-
-
-def test_clamp_challenge_rating_keeps_rating_within_range(
-    challenge_rating_reference: ChallengeRatingReference,
-) -> None:
-    """Keep an already valid challenge rating unchanged."""
-    assert challenge_rating_reference.clamp_challenge_rating(2) == 2
-
-
-def test_clamp_challenge_rating_to_minimum(
-    challenge_rating_reference: ChallengeRatingReference,
-) -> None:
-    """Clamp challenge ratings below the reference minimum."""
-    assert challenge_rating_reference.clamp_challenge_rating(-3) == 1
-
-
-def test_clamp_challenge_rating_to_maximum(
-    challenge_rating_reference: ChallengeRatingReference,
-) -> None:
-    """Clamp challenge ratings above the reference maximum."""
-    assert challenge_rating_reference.clamp_challenge_rating(10) == 2

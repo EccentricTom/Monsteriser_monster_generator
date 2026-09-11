@@ -27,7 +27,6 @@ class DefensiveChallengeRatingResult:
     """
 
     hit_point_challenge_rating: float
-    adjusted_challenge_rating: float
     challenge_rating: float
     armor_class: ArmorClassAdjustmentResult
     health: DefensiveHealthResult
@@ -69,17 +68,13 @@ def calculate_monster_defensive_cr(
         expected_armor_class=expected_armor_class,
     )
 
-    adjusted_challenge_rating = (
-        hit_point_challenge_rating + armor_class_result.challenge_rating_adjustment
-    )
-
-    challenge_rating = reference.clamp_challenge_rating(
-        adjusted_challenge_rating,
+    challenge_rating = reference.adjust_challenge_rating(
+        challenge_rating=hit_point_challenge_rating,
+        steps=armor_class_result.challenge_rating_steps,
     )
 
     return DefensiveChallengeRatingResult(
         hit_point_challenge_rating=hit_point_challenge_rating,
-        adjusted_challenge_rating=adjusted_challenge_rating,
         challenge_rating=challenge_rating,
         armor_class=armor_class_result,
         health=health_result,

@@ -53,12 +53,14 @@ def combine_challenge_ratings(
     *,
     offensive_challenge_rating: float,
     defensive_challenge_rating: float,
-) -> tuple[float, int]:
+    reference: ChallengeRatingReference,
+) -> tuple[float, float]:
     """Combine offensive and defensive CR into average and final CR.
 
     Args:
         offensive_challenge_rating: Calculated offensive CR
         defensive_challenge_rating: Calculated_defensive CR
+        reference: The Challenge rating reference table for adjusting CR
 
     Returns:
         Unrounded average and final rounded challenge rating.
@@ -75,12 +77,18 @@ def combine_challenge_ratings(
 
     policy = CHALLENGE_RATING_POLICY
 
-    average_challenge_rating = (offensive_challenge_rating + defensive_challenge_rating) / 2
+    average_challenge_rating = (
+        offensive_challenge_rating * policy.offensive_weight
+        + defensive_challenge_rating * policy.defensive_weight
+    )
 
     if policy.round_down:
-        challenge_rating = int(average_challenge_rating)
+        challenge_rating = reference.get_challenge_rating_at_or_below(average_challenge_rating)
     else:
-        challenge_rating = round(average_challenge_rating)
+        challenge_rating = min(
+            (float(rating) for rating in reference.reference["challenge_rating"].to_list()),
+            key=lambda rating: abs(rating - average_challenge_rating),
+        )
 
     return (
         average_challenge_rating,
@@ -106,6 +114,7 @@ def calculate_monster_challenge_rating(
     average_challenge_rating, challenge_rating = combine_challenge_ratings(
         offensive_challenge_rating=offensive_result.challenge_rating,
         defensive_challenge_rating=defensive_result.challenge_rating,
+        reference=reference,
     )
 
     return ChallengeRatingResult(

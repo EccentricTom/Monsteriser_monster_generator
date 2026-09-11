@@ -66,7 +66,7 @@ def test_load_challenge_rating_reference_enforces_integer_schema(
     result = load_challenge_rating_reference(filepath=filepath)
 
     assert result.reference.schema == {
-        "challenge_rating": pl.Int64,
+        "challenge_rating": pl.Float64,
         "armor_class": pl.Int64,
         "save_bonus": pl.Int64,
         "hit_points_min": pl.Int64,

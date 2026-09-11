@@ -7,7 +7,7 @@ from monsteriser_monster_generator.systems.dnd5e.calculations.defensive.armor_cl
 
 
 @pytest.mark.parametrize(
-    ("actual_ac", "expected_ac", "expected_difference", "expected_adjustment"),
+    ("actual_ac", "expected_ac", "expected_difference", "expected_steps"),
     [
         (14, 14, 0, 0),
         (15, 14, 1, 0),
@@ -24,7 +24,7 @@ def test_calculate_armor_class_adjustment(
     actual_ac: int,
     expected_ac: int,
     expected_difference: int,
-    expected_adjustment: int,
+    expected_steps: int,
 ) -> None:
     """Adjust defensive CR by one for every two AC points."""
     result = calculate_armor_class_adjustment(
@@ -35,5 +35,5 @@ def test_calculate_armor_class_adjustment(
         actual_armor_class=actual_ac,
         expected_armor_class=expected_ac,
         difference=expected_difference,
-        challenge_rating_adjustment=expected_adjustment,
+        challenge_rating_steps=expected_steps,
     )

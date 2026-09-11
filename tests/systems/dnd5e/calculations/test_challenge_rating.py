@@ -16,6 +16,8 @@ from monsteriser_monster_generator.systems.dnd5e.reference_data import (
     load_challenge_rating_reference,
 )
 
+REFERENCE = load_challenge_rating_reference()
+
 
 def test_challenge_rating_policy_defaults() -> None:
     """Use equal weighting and round down by default."""
@@ -55,6 +57,7 @@ def test_combine_challenge_ratings(
     average, final_cr = combine_challenge_ratings(
         offensive_challenge_rating=offensive_cr,
         defensive_challenge_rating=defensive_cr,
+        reference=REFERENCE,
     )
 
     assert average == expected_average
@@ -77,6 +80,7 @@ def test_combine_challenge_ratings_rejects_negative_cr(
         combine_challenge_ratings(
             offensive_challenge_rating=offensive_cr,
             defensive_challenge_rating=defensive_cr,
+            reference=REFERENCE,
         )
 
 
@@ -98,6 +102,7 @@ def test_combine_challenge_ratings_weights_offense_and_defense_equally(
     _, final = combine_challenge_ratings(
         offensive_challenge_rating=offensive_cr,
         defensive_challenge_rating=defensive_cr,
+        reference=REFERENCE,
     )
 
     assert final == expected
@@ -121,6 +126,7 @@ def test_combine_challenge_ratings_rounds_half_values_down(
     average, final = combine_challenge_ratings(
         offensive_challenge_rating=offensive_cr,
         defensive_challenge_rating=defensive_cr,
+        reference=REFERENCE,
     )
 
     assert average == expected_average
@@ -145,10 +151,11 @@ def test_combine_challenge_ratings_can_use_standard_rounding(
     average, final = combine_challenge_ratings(
         offensive_challenge_rating=3,
         defensive_challenge_rating=2,
+        reference=REFERENCE,
     )
 
     assert average == 2.5
-    assert final == 2
+    assert final == 2.0
 
 
 def test_combine_challenge_ratings_uses_configured_weights(
@@ -167,12 +174,13 @@ def test_combine_challenge_ratings_uses_configured_weights(
     )
 
     average, final = combine_challenge_ratings(
-        offensive_challenge_rating=8,
-        defensive_challenge_rating=4,
+        offensive_challenge_rating=4,
+        defensive_challenge_rating=5,
+        reference=REFERENCE,
     )
 
-    assert average == 6.0
-    assert final == 6
+    assert average == 4.25
+    assert final == 4.0
 
 
 def test_calculate_monster_challenge_rating() -> None:
@@ -196,7 +204,7 @@ def test_calculate_monster_challenge_rating() -> None:
 
     result = calculate_monster_challenge_rating(
         monster=monster,
-        reference=load_challenge_rating_reference(),
+        reference=REFERENCE,
     )
 
     assert result.offensive.challenge_rating == 1
