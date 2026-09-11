@@ -42,6 +42,8 @@ def calculate_action_average_damage(
         return maximum_damage
 
     if isinstance(action, SavingThrowAction):
+        if action.saving_throw is None:
+            return 0.0
         failed_save_damage = action.saving_throw.average_failed_save()
 
         return failed_save_damage * action.expected_targets

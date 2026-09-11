@@ -147,6 +147,27 @@ def test_calculate_average_damage_for_saving_throw() -> None:
     assert result == 42.0
 
 
+def test_calculate_non_damaging_saving_throw_action_damage() -> None:
+    """Return zero damage for a saving-throw action without damage."""
+    action = SavingThrowAction(
+        action_id="frightful_presence",
+        name="Frightful Presence",
+        origin="natural",
+        ability="wisdom",
+        difficulty_class=15,
+        failure_effect_str="the target has the Frightened condition",
+    )
+
+    damage = calculate_action_average_damage(
+        action=action,
+        actions_by_id={
+            action.action_id: action,
+        },
+    )
+
+    assert damage == 0.0
+
+
 def test_calculate_action_average_damage_returns_zero_for_non_damage_action() -> None:
     """Return zero for an action without modeled damage."""
     dash = MonsterAction(
