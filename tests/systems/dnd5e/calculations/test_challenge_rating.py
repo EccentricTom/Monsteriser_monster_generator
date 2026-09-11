@@ -39,25 +39,28 @@ def test_challenge_rating_policy_defaults() -> None:
         "expected_final_cr",
     ),
     [
-        (1, 1, 1.0, 1),
-        (2, 2, 2.0, 2),
-        (2, 1, 1.5, 1),
-        (5, 4, 4.5, 4),
-        (8, 3, 5.5, 5),
-        (10, 6, 8.0, 8),
+        (1.0, 1.0, 1.0, 1.0),
+        (2.0, 2.0, 2.0, 2.0),
+        (2.0, 1.0, 1.5, 1.0),
+        (5.0, 4.0, 4.5, 4.0),
+        (8.0, 3.0, 5.5, 5.0),
+        (10.0, 6.0, 8.0, 8.0),
+        (0.125, 0.25, 0.1875, 0.125),
+        (0.25, 0.5, 0.375, 0.25),
+        (0.5, 1.0, 0.75, 0.5),
     ],
 )
 def test_combine_challenge_ratings(
-    offensive_cr: int,
-    defensive_cr: int,
+    offensive_cr: float,
+    defensive_cr: float,
     expected_average: float,
-    expected_final_cr: int,
+    expected_final_cr: float,
 ) -> None:
-    """Average offensive and defensive CR and round down."""
+    """Combine offensive and defensive CR and round down."""
     average, final_cr = combine_challenge_ratings(
         offensive_challenge_rating=offensive_cr,
         defensive_challenge_rating=defensive_cr,
-        reference=REFERENCE,
+        reference=load_challenge_rating_reference(),
     )
 
     assert average == expected_average
@@ -184,30 +187,30 @@ def test_combine_challenge_ratings_uses_configured_weights(
 
 
 def test_calculate_monster_challenge_rating() -> None:
-    """Calculate final CR from offensive and defensive CR."""
+    """Calculate final CR from real offensive and defensive calculations."""
     bite = AttackAction(
         action_id="bite",
-        name="Bite",
+        name="bite",
         origin="natural",
         attack_range="melee",
-        attack_bonus=3,
-        damage=(DamageRoll(dice_count=2, die_size=6, damage_type="piercing", modifier=5),),
+        attack_bonus=4,
+        damage=(DamageRoll(dice_count=1, die_size=4, damage_type="piercing"),),
     )
 
     monster = BaseMonster(
         name="Test Monster",
-        hitpoints=30,
-        dexterity=18,
-        expected_cr=1,
+        hitpoints=10,
+        dexterity=16,
+        expected_cr=0.25,
         abilities=[bite],
     )
 
     result = calculate_monster_challenge_rating(
         monster=monster,
-        reference=REFERENCE,
+        reference=load_challenge_rating_reference(),
     )
 
-    assert result.offensive.challenge_rating == 1
-    assert result.defensive.challenge_rating == 1
-    assert result.average_challenge_rating == 1.0
-    assert result.challenge_rating == 1
+    assert result.offensive.challenge_rating == 0.125
+    assert result.defensive.challenge_rating == 0.25
+    assert result.average_challenge_rating == 0.1875
+    assert result.challenge_rating == 0.125
