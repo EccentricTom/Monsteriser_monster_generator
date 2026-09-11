@@ -3,6 +3,8 @@
 from dataclasses import dataclass
 from typing import Literal
 
+from ...models.actions import AttackAction, MonsterAction, SavingThrowAction
+
 OffensiveAccuracyType = Literal[
     "attack_bonus",
     "save_dc",
@@ -45,3 +47,38 @@ def calculate_offensive_accuracy_adjustment(
         difference=difference,
         challenge_rating_steps=int(difference / 2),
     )
+
+
+@dataclass(kw_only=True, frozen=True, slots=True)
+class OffensiveAccuracy:
+    """Represent the accuracy statistic used by an offensive action."""
+
+    accuracy_type: OffensiveAccuracyType
+    value: int
+
+
+def get_action_offensive_accuracy(
+    action: MonsterAction,
+) -> OffensiveAccuracy | None:
+    """Return the offensive accuracy statistic used by an action.
+
+    Args:
+        action: Monster action being inspected
+
+    Returns:
+        Attack bonus or save DC used by the action, or None if the action does not use either mechanic
+
+    """
+    if isinstance(action, AttackAction):
+        return OffensiveAccuracy(
+            accuracy_type="attack_bonus",
+            value=action.attack_bonus,
+        )
+
+    if isinstance(action, SavingThrowAction):
+        return OffensiveAccuracy(
+            accuracy_type="save_dc",
+            value=action.difficulty_class,
+        )
+
+    return None

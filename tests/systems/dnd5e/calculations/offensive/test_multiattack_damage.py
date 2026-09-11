@@ -149,9 +149,9 @@ def test_calculate_multiattack_routine_damage_includes_saving_throw_action() -> 
         name="Consume Memories",
         origin="special",
         target_description="one creature within 60 feet.",
+        ability="wisdom",
+        difficulty_class=15,
         saving_throw=SavingThrowDamage(
-            ability="wisdom",
-            difficulty_class=15,
             damage=(
                 DamageRoll(
                     dice_count=4,
@@ -160,6 +160,7 @@ def test_calculate_multiattack_routine_damage_includes_saving_throw_action() -> 
                     damage_type="psychic",
                 ),
             ),
+            success_outcome="half",
         ),
         expected_targets=1.0,
     )
@@ -305,9 +306,9 @@ def test_find_maximum_damage_multiattack_routine_selects_damaging_choice() -> No
         name="Consume Memories",
         origin="special",
         target_description="One Creature within 60 feet.",
+        ability="wisdom",
+        difficulty_class=15,
         saving_throw=SavingThrowDamage(
-            ability="wisdom",
-            difficulty_class=15,
             damage=(
                 DamageRoll(
                     dice_count=4,
@@ -316,6 +317,7 @@ def test_find_maximum_damage_multiattack_routine_selects_damaging_choice() -> No
                     damage_type="psychic",
                 ),
             ),
+            success_outcome="half",
         ),
         expected_targets=1.0,
     )

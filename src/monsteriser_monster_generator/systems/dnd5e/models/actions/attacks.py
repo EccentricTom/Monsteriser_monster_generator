@@ -3,7 +3,7 @@
 from dataclasses import dataclass, field
 from typing import Literal
 
-from ..model_types import AttackRange
+from ..model_types import AbilityName, AttackRange
 from .base import MonsterAction
 from .effects import ConditionEffect, DamageRoll, SavingThrowDamage
 
@@ -71,7 +71,7 @@ class AttackAction(MonsterAction):
             case "melee":
                 return f"Melee attack roll: {attack_bonus}, reach {self._format_reach()}."
             case "ranged":
-                return f"Melee attack roll: {attack_bonus}, range {self._format_range()}."
+                return f"Ranged attack roll: {attack_bonus}, range {self._format_range()}."
             case "melee_or_ranged":
                 return (
                     f"Melee or ranged attack roll: {attack_bonus}, "
@@ -116,10 +116,13 @@ class SavingThrowAction(MonsterAction):
         init=False,
     )
 
-    saving_throw: SavingThrowDamage
+    ability: AbilityName
+    difficulty_class: int
+
+    saving_throw: SavingThrowDamage | None = None
     conditions: tuple[ConditionEffect, ...] = ()
 
-    target_description: str
+    target_description: str | None = None
     area_description: str | None = None
     expected_targets: float = 1.0
     failure_effect_str: str | None = None
@@ -136,28 +139,36 @@ class SavingThrowAction(MonsterAction):
         if self.description_override is not None:
             return self.description_override
 
-        effect = self.saving_throw
-        ability = effect.ability.capitalize()
+        ability = self.ability.capitalize()
 
         description = (
-            f"a{ability} Saving Throw: "
-            f"DC {effect.difficulty_class}, "
-            f"{self.target_description}. "
-            f"Failure: {self._failed_save_damage_text()}."
+            f"{ability} Saving Throw: DC {self.difficulty_class}, {self.target_description}. "
         )
 
-        if self.failure_effect_str is not None:
-            description = description[:-1] + f"and {self.failure_effect_str}"
+        if self.saving_throw is not None:
+            description += f"Failure: {self._failed_save_damage_text()}."
 
-        if effect.success_outcome == "half":
-            description += "Success: Half damage."
-        elif self.success_effect_str is not None:
-            description += f"Success: {self.success_effect_str}"
+            if self.failure_effect_str is not None:
+                description = description[:-1] + f" and {self.failure_effect_str}."
+
+            if self.saving_throw.success_outcome == "half":
+                description += " Success: Half damage."
+            elif self.success_effect_str is not None:
+                description += f" Success: {self.success_effect_str}"
+
+        elif self.failure_effect_str is not None:
+            description += f"Failure: {self.failure_effect_str}."
+
+            if self.success_effect_str is not None:
+                description += f" Success: {self.success_effect_str}"
 
         return description
 
     def _failed_save_damage_text(self) -> str:
-        """Generate the description of what happens on a failed save."""
+        """Generate the failed-save damage text."""
+        if self.saving_throw is None:
+            raise ValueError(f"Action {self.action_id!r} has no saving-throw damage")
+
         damage_parts = tuple(
             damage_roll.stat_block_text() for damage_roll in self.saving_throw.damage
         )

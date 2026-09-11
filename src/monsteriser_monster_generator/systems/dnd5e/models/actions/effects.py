@@ -3,7 +3,6 @@
 from dataclasses import dataclass
 
 from ..model_types import (
-    AbilityName,
     ConditionName,
     DamageType,
     SavingThrowOutcome,
@@ -66,10 +65,8 @@ class ConditionEffect:
 class SavingThrowDamage:
     """Represent damage resolved through a saving throw instead of attack action."""
 
-    ability: AbilityName
-    difficulty_class: int
     damage: tuple[DamageRoll, ...]
-    success_outcome: SavingThrowOutcome = "none"
+    success_outcome: SavingThrowOutcome
 
     def average_failed_save(self) -> float:
         """Return the average damage on a failed save."""

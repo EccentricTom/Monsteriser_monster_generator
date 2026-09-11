@@ -120,10 +120,10 @@ def test_calculate_average_damage_for_saving_throw() -> None:
         name="Fire Breath",
         origin="special",
         target_description="Each creature in a 30ft cone",
+        ability="dexterity",
+        difficulty_class=15,
         expected_targets=2.0,
         saving_throw=SavingThrowDamage(
-            ability="dexterity",
-            difficulty_class=15,
             damage=(
                 DamageRoll(
                     dice_count=6,

@@ -1,8 +1,15 @@
 import pytest
 
 from monsteriser_monster_generator.systems.dnd5e.calculations.offensive.accuracy import (
+    OffensiveAccuracy,
     OffensiveAccuracyAdjustment,
     calculate_offensive_accuracy_adjustment,
+    get_action_offensive_accuracy,
+)
+from monsteriser_monster_generator.systems.dnd5e.models.actions import (
+    AttackAction,
+    MonsterAction,
+    SavingThrowAction,
 )
 
 
@@ -50,3 +57,47 @@ def test_calculate_offensive_accuracy_adjustment_supports_save_dc() -> None:
 
     assert result.accuracy_type == "save_dc"
     assert result.challenge_rating_steps == 1
+
+
+def test_get_attack_action_offensive_accuracy() -> None:
+    """Return attack bonus for an attack action."""
+    action = AttackAction(
+        name="bite",
+        action_id="bite",
+        origin="natural",
+        attack_range="melee",
+        attack_bonus=7,
+        damage=(),
+    )
+
+    assert get_action_offensive_accuracy(action) == OffensiveAccuracy(
+        accuracy_type="attack_bonus",
+        value=7,
+    )
+
+
+def test_get_saving_throw_action_offensive_accuracy() -> None:
+    """Return save DC for a saving throw action."""
+    action = SavingThrowAction(
+        action_id="fire_breath",
+        name="Fire Breath",
+        origin="natural",
+        difficulty_class=15,
+        ability="dexterity",
+    )
+
+    assert get_action_offensive_accuracy(action) == OffensiveAccuracy(
+        accuracy_type="save_dc", value=15
+    )
+
+
+def test_get_none_offensive_accuracy() -> None:
+    """Return None for an action that has neither an attack bonus or save DC."""
+    action = MonsterAction(
+        action_id="misty_step",
+        name="Misty Step",
+        category="special",
+        origin="spell",
+    )
+
+    assert get_action_offensive_accuracy(action) is None
