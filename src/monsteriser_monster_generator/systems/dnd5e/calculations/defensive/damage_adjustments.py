@@ -47,7 +47,7 @@ def describe_damage_adjustment_policy() -> str:
         "are required for resistances, immunities, or vulnerabilities "
         "to affect effective hit points. If both resistance and immunity "
         "qualify, immunity takes precedence. Significant vulnerabilities "
-        f"apply a ×{policy.vulnerability_multiplier:g} hit-point multiplier. "
+        f"apply a x{policy.vulnerability_multiplier:g} hit-point multiplier. "
         "Physical and non-physical damage types are currently weighted equally."
     )
 
@@ -112,7 +112,7 @@ def validate_damage_adjustment_categories(
 
 def get_resistance_hit_point_multiplier(
     *,
-    expected_challenge_rating: int,
+    expected_challenge_rating: float,
 ) -> float:
     """Return the effective-HP multiplier for resistance.
 
@@ -143,7 +143,7 @@ def get_resistance_hit_point_multiplier(
 
 def get_immunity_hit_point_multiplier(
     *,
-    expected_challenge_rating: int,
+    expected_challenge_rating: float,
 ) -> float:
     """Return the effective-HP multiplier for immunity.
 

@@ -20,7 +20,7 @@ class OffensiveChallengeRatingResult:
 
     """
 
-    challenge_rating: int
+    challenge_rating: float
     damage: OffensiveDamageResult
 
 

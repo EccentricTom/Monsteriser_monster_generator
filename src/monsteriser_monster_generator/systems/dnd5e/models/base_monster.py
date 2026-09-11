@@ -46,7 +46,7 @@ class BaseMonster:
     armor_class: int = field(init=False)
     current_cr: float = field(init=False)
 
-    expected_cr: int = field(default=1)
+    expected_cr: float = field(default=1)
 
     def __post_init__(self) -> None:
         """Set up ability modifiers and base armor class."""

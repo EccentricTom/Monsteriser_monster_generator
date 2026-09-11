@@ -26,9 +26,9 @@ class DefensiveChallengeRatingResult:
 
     """
 
-    hit_point_challenge_rating: int
-    adjusted_challenge_rating: int
-    challenge_rating: int
+    hit_point_challenge_rating: float
+    adjusted_challenge_rating: float
+    challenge_rating: float
     armor_class: ArmorClassAdjustmentResult
     health: DefensiveHealthResult
 

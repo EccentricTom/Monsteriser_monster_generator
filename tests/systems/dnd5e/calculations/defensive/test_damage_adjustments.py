@@ -169,7 +169,7 @@ def test_describe_damage_adjustment_policy_includes_vulnerability_multiplier() -
     """Describe the configured vulnerability multiplier."""
     result = describe_damage_adjustment_policy()
 
-    assert "×0.5 hit-point multiplier" in result
+    assert "x0.5 hit-point multiplier" in result
 
 
 def test_describe_damage_adjustment_policy_explains_immunity_precedence() -> None:

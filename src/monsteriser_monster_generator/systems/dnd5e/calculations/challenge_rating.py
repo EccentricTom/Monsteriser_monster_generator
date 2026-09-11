@@ -46,13 +46,13 @@ class ChallengeRatingResult:
     offensive: OffensiveChallengeRatingResult
     defensive: DefensiveChallengeRatingResult
     average_challenge_rating: float
-    challenge_rating: int
+    challenge_rating: float
 
 
 def combine_challenge_ratings(
     *,
-    offensive_challenge_rating: int,
-    defensive_challenge_rating: int,
+    offensive_challenge_rating: float,
+    defensive_challenge_rating: float,
 ) -> tuple[float, int]:
     """Combine offensive and defensive CR into average and final CR.
 

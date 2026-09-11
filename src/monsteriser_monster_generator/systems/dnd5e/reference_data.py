@@ -272,7 +272,7 @@ class ChallengeRatingReference:
 
     def get_expected_armor_class(
         self,
-        challenge_rating: int,
+        challenge_rating: float,
     ) -> int:
         """Return the expected Armor class (AC) for a challenge rating."""
         matching_rows = self.reference.filter(pl.col("challenge_rating") == challenge_rating)
@@ -297,8 +297,8 @@ class ChallengeRatingReference:
 
     def clamp_challenge_rating(
         self,
-        challenge_rating: int,
-    ) -> int:
+        challenge_rating: float,
+    ) -> float:
         """Clamp a challenge rating to the loaded reference range.
 
         Args:
