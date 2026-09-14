@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from typing import Literal
 
 from ...models.actions import AttackAction, MonsterAction, MultiattackAction, SavingThrowAction
+from ..challenge_rating import ChallengeRatingReference
 from ..offensive.damage import (
     calculate_action_average_damage,
     find_maximum_damage_multiattack_routine,
@@ -222,3 +223,91 @@ def calculate_representative_offensive_accuracy(
         value=int(weighted_value),
         damage=total_damage,
     )
+
+
+def _calculate_representative_accuracy(
+    contributions: tuple[OffensiveAccuracyContribution, ...],
+    *,
+    accuracy_type: OffensiveAccuracyType,
+) -> RepresentativeOffensiveAccuracy | None:
+    """Calculate damage-weighted accuracy for one accuracy type."""
+    selected_contributions = tuple(
+        contribution
+        for contribution in contributions
+        if contribution.accuracy.accuracy_type == accuracy_type
+    )
+
+    if not selected_contributions:
+        return None
+
+    total_damage = sum(contribution.damage for contribution in selected_contributions)
+
+    weighted_value = (
+        sum(
+            contribution.accuracy.value * contribution.damage
+            for contribution in selected_contributions
+        )
+        / total_damage
+    )
+
+    return RepresentativeOffensiveAccuracy(
+        accuracy_type=accuracy_type,
+        value=int(weighted_value),
+        damage=total_damage,
+    )
+
+
+def calculate_representative_offensive_accuracies(
+    contributions: tuple[OffensiveAccuracyContribution, ...],
+) -> tuple[RepresentativeOffensiveAccuracy, ...]:
+    """Return representative offensive accuracies by damage type."""
+    representatives: list[RepresentativeOffensiveAccuracy] = []
+
+    for accuracy_type in ("attack_bonus", "save_dc"):
+        representative = _calculate_representative_accuracy(
+            contributions, accuracy_type=accuracy_type
+        )
+
+        if representative is not None:
+            representatives.append(representative)
+
+    return tuple(representatives)
+
+
+def select_offensive_accuracy(
+    *,
+    accuracies: tuple[RepresentativeOffensiveAccuracy, ...],
+    challenge_rating: float,
+    reference: ChallengeRatingReference,
+) -> RepresentativeOffensiveAccuracy | None:
+    """Select the accuracy statistic used to adjust offensive CR."""
+    if not accuracies:
+        return None
+
+    maximum_damage = max(accuracy.damage for accuracy in accuracies)
+
+    candidates = tuple(accuracy for accuracy in accuracies if accuracy.damage == maximum_damage)
+
+    if len(candidates) == 1:
+        return candidates[0]
+
+    best_accuracy: RepresentativeOffensiveAccuracy | None = None
+    best_adjustment: int | None = None
+
+    for accuracy in candidates:
+        if accuracy.accuracy_type == "attack_bonus":
+            expected_value = reference.get_expected_attack_bonus(challenge_rating=challenge_rating)
+        else:
+            expected_value = reference.get_expected_save_dc(challenge_rating=challenge_rating)
+
+        adjustment = calculate_offensive_accuracy_adjustment(
+            accuracy_type=accuracy.accuracy_type,
+            actual_value=accuracy.value,
+            expected_value=expected_value,
+        )
+
+        if best_adjustment is None or adjustment.challenge_rating_steps > best_adjustment:
+            best_accuracy = accuracy
+            best_adjustment = adjustment.challenge_rating_steps
+
+    return best_accuracy

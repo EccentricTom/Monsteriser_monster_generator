@@ -12,6 +12,7 @@ from monsteriser_monster_generator.systems.dnd5e.calculations.offensive.accuracy
     get_action_accuracy_contribution,
     get_action_offensive_accuracy,
     get_multiattack_accuracy_contributions,
+    select_offensive_accuracy,
 )
 from monsteriser_monster_generator.systems.dnd5e.models.actions import (
     AttackAction,
@@ -21,6 +22,9 @@ from monsteriser_monster_generator.systems.dnd5e.models.actions import (
     MultiattackAction,
     SavingThrowAction,
     SavingThrowDamage,
+)
+from monsteriser_monster_generator.systems.dnd5e.reference_data import (
+    load_challenge_rating_reference,
 )
 
 
@@ -398,3 +402,51 @@ def test_calculate_representative_offensive_accuracy_uses_dominant_damage_type()
 def test_calculate_representative_offensive_accuracy_returns_none_without_contributions() -> None:
     """Return None when no damaging accuracy contributions exist."""
     assert calculate_representative_offensive_accuracy(()) is None
+
+
+def test_select_offensive_accuracy_uses_highest_damage() -> None:
+    """Use the accuracy responsible for most damage."""
+    accuracies = (
+        RepresentativeOffensiveAccuracy(
+            accuracy_type="attack_bonus",
+            value=7,
+            damage=40.0,
+        ),
+        RepresentativeOffensiveAccuracy(
+            accuracy_type="save_dc",
+            value=16,
+            damage=30.0,
+        ),
+    )
+
+    result = select_offensive_accuracy(
+        accuracies=accuracies,
+        challenge_rating=1.0,
+        reference=load_challenge_rating_reference(),
+    )
+
+    assert result == accuracies[0]
+
+
+def test_select_offensive_accuracy_breaks_damage_tie_by_cr_adjustment() -> None:
+    """Use the stronger CR adjustment when damage contributions tie."""
+    accuracies = (
+        RepresentativeOffensiveAccuracy(
+            accuracy_type="attack_bonus",
+            value=7,
+            damage=20.0,
+        ),
+        RepresentativeOffensiveAccuracy(
+            accuracy_type="save_dc",
+            value=13,
+            damage=20.0,
+        ),
+    )
+
+    result = select_offensive_accuracy(
+        accuracies=accuracies,
+        challenge_rating=1.0,
+        reference=load_challenge_rating_reference(),
+    )
+
+    assert result == accuracies[0]
