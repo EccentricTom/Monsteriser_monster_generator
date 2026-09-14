@@ -214,3 +214,44 @@ def test_calculate_monster_challenge_rating() -> None:
     assert result.defensive.challenge_rating == 0.25
     assert result.average_challenge_rating == 0.1875
     assert result.challenge_rating == 0.125
+
+
+def test_calculate_monster_challenge_rating_includes_accuracy_adjustment() -> None:
+    """Include offensive accuracy adjustment in the final monster CR."""
+    bite = AttackAction(
+        action_id="bite",
+        name="Bite",
+        origin="natural",
+        attack_range="melee",
+        attack_bonus=7,
+        reach_ft=5,
+        damage=(
+            DamageRoll(
+                dice_count=2,
+                die_size=6,
+                modifier=5,
+                damage_type="piercing",
+            ),
+        ),
+    )
+
+    monster = BaseMonster(
+        name="Test Monster",
+        hitpoints=30,
+        dexterity=18,
+        expected_cr=1.0,
+        abilities=[bite],
+    )
+
+    result = calculate_monster_challenge_rating(
+        monster=monster,
+        reference=load_challenge_rating_reference(),
+    )
+
+    assert result.offensive.damage_challenge_rating == 1.0
+    assert result.offensive.challenge_rating == 2.0
+
+    assert result.defensive.challenge_rating == 1.0
+
+    assert result.average_challenge_rating == 1.5
+    assert result.challenge_rating == 1.0

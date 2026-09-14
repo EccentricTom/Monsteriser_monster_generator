@@ -59,7 +59,7 @@ def combine_challenge_ratings(
 
     Args:
         offensive_challenge_rating: Calculated offensive CR
-        defensive_challenge_rating: Calculated_defensive CR
+        defensive_challenge_rating: Calculated defensive CR
         reference: The Challenge rating reference table for adjusting CR
 
     Returns:
@@ -104,7 +104,10 @@ def calculate_monster_challenge_rating(
 ) -> ChallengeRatingResult:
     """Calculate a monster's complete challenge rating."""
     offensive_result = calculate_monster_offensive_cr(
-        monster=monster, reference=reference, legendary=monster.is_legendary, rounds=rounds
+        monster=monster,
+        reference=reference,
+        legendary=monster.is_legendary,
+        rounds=rounds,
     )
     defensive_result = calculate_monster_defensive_cr(
         monster=monster,
