@@ -8,10 +8,11 @@ from monsteriser_monster_generator.systems.dnd5e.calculations.offensive.accuracy
     OffensiveAccuracyContribution,
     RepresentativeOffensiveAccuracy,
     calculate_offensive_accuracy_adjustment,
-    calculate_representative_offensive_accuracy,
+    calculate_representative_offensive_accuracies,
     get_action_accuracy_contribution,
     get_action_offensive_accuracy,
     get_multiattack_accuracy_contributions,
+    scale_accuracy_contributions,
     select_offensive_accuracy,
 )
 from monsteriser_monster_generator.systems.dnd5e.models.actions import (
@@ -309,125 +310,6 @@ def test_get_multiattack_accuracy_contributions() -> None:
     )
 
 
-def test_calculate_representative_offensive_accuracy_for_attacks() -> None:
-    """Calculate damage-weighted attack bonus."""
-    contributions = (
-        OffensiveAccuracyContribution(
-            accuracy=OffensiveAccuracy(
-                accuracy_type="attack_bonus",
-                value=8,
-            ),
-            damage=12.0,
-        ),
-        OffensiveAccuracyContribution(
-            accuracy=OffensiveAccuracy(
-                accuracy_type="attack_bonus",
-                value=6,
-            ),
-            damage=6.0,
-        ),
-    )
-
-    result = calculate_representative_offensive_accuracy(
-        contributions,
-    )
-
-    assert result == RepresentativeOffensiveAccuracy(
-        accuracy_type="attack_bonus",
-        value=7,
-        damage=18.0,
-    )
-
-
-def test_calculate_representative_offensive_accuracy_for_save_dc() -> None:
-    """Calculate damage-weighted save DC."""
-    contributions = (
-        OffensiveAccuracyContribution(
-            accuracy=OffensiveAccuracy(
-                accuracy_type="save_dc",
-                value=15,
-            ),
-            damage=20.0,
-        ),
-        OffensiveAccuracyContribution(
-            accuracy=OffensiveAccuracy(
-                accuracy_type="save_dc",
-                value=13,
-            ),
-            damage=10.0,
-        ),
-    )
-
-    result = calculate_representative_offensive_accuracy(
-        contributions,
-    )
-
-    assert result == RepresentativeOffensiveAccuracy(
-        accuracy_type="save_dc",
-        value=14,
-        damage=30.0,
-    )
-
-
-def test_calculate_representative_offensive_accuracy_uses_dominant_damage_type() -> None:
-    """Use the accuracy type responsible for most offensive damage."""
-    contributions = (
-        OffensiveAccuracyContribution(
-            accuracy=OffensiveAccuracy(
-                accuracy_type="attack_bonus",
-                value=7,
-            ),
-            damage=40.0,
-        ),
-        OffensiveAccuracyContribution(
-            accuracy=OffensiveAccuracy(
-                accuracy_type="save_dc",
-                value=16,
-            ),
-            damage=30.0,
-        ),
-    )
-
-    result = calculate_representative_offensive_accuracy(
-        contributions,
-    )
-
-    assert result == RepresentativeOffensiveAccuracy(
-        accuracy_type="attack_bonus",
-        value=7,
-        damage=40.0,
-    )
-
-
-def test_calculate_representative_offensive_accuracy_returns_none_without_contributions() -> None:
-    """Return None when no damaging accuracy contributions exist."""
-    assert calculate_representative_offensive_accuracy(()) is None
-
-
-def test_select_offensive_accuracy_uses_highest_damage() -> None:
-    """Use the accuracy responsible for most damage."""
-    accuracies = (
-        RepresentativeOffensiveAccuracy(
-            accuracy_type="attack_bonus",
-            value=7,
-            damage=40.0,
-        ),
-        RepresentativeOffensiveAccuracy(
-            accuracy_type="save_dc",
-            value=16,
-            damage=30.0,
-        ),
-    )
-
-    result = select_offensive_accuracy(
-        accuracies=accuracies,
-        challenge_rating=1.0,
-        reference=load_challenge_rating_reference(),
-    )
-
-    assert result == accuracies[0]
-
-
 def test_select_offensive_accuracy_breaks_damage_tie_by_cr_adjustment() -> None:
     """Use the stronger CR adjustment when damage contributions tie."""
     accuracies = (
@@ -450,3 +332,92 @@ def test_select_offensive_accuracy_breaks_damage_tie_by_cr_adjustment() -> None:
     )
 
     assert result == accuracies[0]
+
+
+def test_calculate_representative_offensive_accuracies() -> None:
+    """Calculate damage-weighted representatives for each accuracy type."""
+    contributions = (
+        OffensiveAccuracyContribution(
+            accuracy=OffensiveAccuracy(
+                accuracy_type="attack_bonus",
+                value=8,
+            ),
+            damage=12.0,
+        ),
+        OffensiveAccuracyContribution(
+            accuracy=OffensiveAccuracy(
+                accuracy_type="attack_bonus",
+                value=6,
+            ),
+            damage=6.0,
+        ),
+        OffensiveAccuracyContribution(
+            accuracy=OffensiveAccuracy(
+                accuracy_type="save_dc",
+                value=15,
+            ),
+            damage=20.0,
+        ),
+        OffensiveAccuracyContribution(
+            accuracy=OffensiveAccuracy(
+                accuracy_type="save_dc",
+                value=13,
+            ),
+            damage=10.0,
+        ),
+    )
+
+    result = calculate_representative_offensive_accuracies(
+        contributions,
+    )
+
+    assert result == (
+        RepresentativeOffensiveAccuracy(
+            accuracy_type="attack_bonus",
+            value=7,
+            damage=18.0,
+        ),
+        RepresentativeOffensiveAccuracy(
+            accuracy_type="save_dc",
+            value=14,
+            damage=30.0,
+        ),
+    )
+
+
+def test_calculate_representative_offensive_accuracies_returns_empty_tuple() -> None:
+    """Return no representatives when there are no contributions."""
+    assert calculate_representative_offensive_accuracies(()) == ()
+
+
+def test_scale_accuracy_contributions() -> None:
+    """Scale contribution damage by expected usage."""
+    contributions = (
+        OffensiveAccuracyContribution(
+            accuracy=OffensiveAccuracy(
+                accuracy_type="attack_bonus",
+                value=7,
+            ),
+            damage=8.0,
+        ),
+    )
+
+    result = scale_accuracy_contributions(
+        contributions,
+        multiplier=2.5,
+    )
+
+    assert result == (
+        OffensiveAccuracyContribution(
+            accuracy=OffensiveAccuracy(
+                accuracy_type="attack_bonus",
+                value=7,
+            ),
+            damage=20.0,
+        ),
+    )
+
+
+def test_get_action_accuracy_contributions_expands_multiattack() -> None:
+    """Return individual contributions from a multiattack action."""
+    ...

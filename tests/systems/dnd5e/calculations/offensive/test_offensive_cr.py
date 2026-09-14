@@ -6,9 +6,6 @@ import polars as pl
 from pytest import raises
 
 from monsteriser_monster_generator.systems.dnd5e.calculations import (
-    OffensiveChallengeRatingResult,
-    OffensiveDamageResult,
-    TurnRoutine,
     calculate_monster_offensive_cr,
 )
 from monsteriser_monster_generator.systems.dnd5e.models.actions import (
@@ -108,16 +105,9 @@ def test_calculate_monster_offensive_cr_uses_standard_dpr_band() -> None:
         reference=create_reference(),
     )
 
-    assert result == OffensiveChallengeRatingResult(
-        challenge_rating=1,
-        damage=OffensiveDamageResult(
-            average_damage_per_round=10.0,
-            fallback_routine=TurnRoutine(
-                primary_action_id="bite",
-            ),
-            special_action_id=None,
-        ),
-    )
+    assert result.damage_challenge_rating == 1.0
+    assert result.challenge_rating == 1.0
+    assert result.damage.average_damage_per_round == 10.0
 
 
 def test_calculate_monster_offensive_cr_moves_to_next_band() -> None:

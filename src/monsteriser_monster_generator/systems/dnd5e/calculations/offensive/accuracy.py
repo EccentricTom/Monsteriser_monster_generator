@@ -4,12 +4,22 @@ from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import Literal
 
-from ...models.actions import AttackAction, MonsterAction, MultiattackAction, SavingThrowAction
-from ..challenge_rating import ChallengeRatingReference
+from ...models.actions import (
+    AttackAction,
+    LimitedUsage,
+    MonsterAction,
+    MultiattackAction,
+    RechargeUsage,
+    SavingThrowAction,
+)
+from ...models.base_monster import BaseMonster
+from ...reference_data import ChallengeRatingReference
+from ..combat_routines import TurnRoutine
 from ..offensive.damage import (
     calculate_action_average_damage,
     find_maximum_damage_multiattack_routine,
 )
+from ..offensive.offensive_damage import OffensiveDamageResult
 
 OffensiveAccuracyType = Literal[
     "attack_bonus",
@@ -98,6 +108,38 @@ class OffensiveAccuracyContribution:
     damage: float
 
 
+def get_action_accuracy_contributions(
+    *,
+    action: MonsterAction,
+    actions_by_id: Mapping[str, MonsterAction],
+) -> tuple[OffensiveAccuracyContribution, ...]:
+    """Return all accuracy contributions produced by an action.
+
+    Args:
+        action: Action being evaluated.
+        actions_by_id: Monster actions indexed by identifier.
+
+    Returns:
+        Accuracy contributions produced by the action.
+
+    """
+    if isinstance(action, MultiattackAction):
+        return get_multiattack_accuracy_contributions(
+            multiattack=action,
+            actions_by_id=actions_by_id,
+        )
+
+    contribution = get_action_accuracy_contribution(
+        action=action,
+        actions_by_id=actions_by_id,
+    )
+
+    if contribution is None:
+        return ()
+
+    return (contribution,)
+
+
 def get_action_accuracy_contribution(
     *,
     action: MonsterAction,
@@ -175,54 +217,6 @@ class RepresentativeOffensiveAccuracy:
     accuracy_type: OffensiveAccuracyType
     value: int
     damage: float
-
-
-def calculate_representative_offensive_accuracy(
-    contributions: tuple[OffensiveAccuracyContribution, ...],
-) -> RepresentativeOffensiveAccuracy | None:
-    """Calculate the representative offensive accuracy.
-
-    Args:
-        contributions: Damage contributions associated with attack bonuses or save DCs
-
-    Returns:
-        Representative offensive accuracy, or None when no damaging accuracy contributions exist.
-
-    """
-    if not contributions:
-        return None
-
-    damage_by_type: dict[OffensiveAccuracyType, float] = {"attack_bonus": 0.0, "save_dc": 0.0}
-
-    for contribution in contributions:
-        damage_by_type[contribution.accuracy.accuracy_type] += contribution.damage
-
-    accuracy_type = max(
-        damage_by_type,
-        key=lambda key: damage_by_type[key],
-    )
-
-    selected_contributions = tuple(
-        contribution
-        for contribution in contributions
-        if contribution.accuracy.accuracy_type == accuracy_type
-    )
-
-    total_damage = sum(contribution.damage for contribution in selected_contributions)
-
-    weighted_value = (
-        sum(
-            contribution.accuracy.value * contribution.damage
-            for contribution in selected_contributions
-        )
-        / total_damage
-    )
-
-    return RepresentativeOffensiveAccuracy(
-        accuracy_type=accuracy_type,
-        value=int(weighted_value),
-        damage=total_damage,
-    )
 
 
 def _calculate_representative_accuracy(
@@ -311,3 +305,138 @@ def select_offensive_accuracy(
             best_adjustment = adjustment.challenge_rating_steps
 
     return best_accuracy
+
+
+def get_turn_routine_accuracy_contributions(
+    *,
+    routine: TurnRoutine,
+    actions_by_id: Mapping[str, MonsterAction],
+) -> tuple[OffensiveAccuracyContribution, ...]:
+    """Return accuracy contributions for a turn routine."""
+    contributions: list[OffensiveAccuracyContribution] = []
+
+    primary_action = actions_by_id[routine.primary_action_id]
+
+    contributions.extend(
+        get_action_accuracy_contributions(
+            action=primary_action,
+            actions_by_id=actions_by_id,
+        )
+    )
+
+    if routine.bonus_action_id is not None:
+        bonus_action = actions_by_id[routine.bonus_action_id]
+
+        contributions.extend(
+            get_action_accuracy_contributions(
+                action=bonus_action,
+                actions_by_id=actions_by_id,
+            )
+        )
+
+    return tuple(contributions)
+
+
+def scale_accuracy_contributions(
+    contributions: tuple[OffensiveAccuracyContribution, ...],
+    *,
+    multiplier: float,
+) -> tuple[OffensiveAccuracyContribution, ...]:
+    """Scale the damage represented by accuracy contributions.
+
+    Args:
+        contributions: Accuracy contributions to scale.
+        multiplier: Expected number of times the contributions occur.
+
+    Returns:
+        Accuracy contributions with scaled damage.
+
+    """
+    return tuple(
+        OffensiveAccuracyContribution(
+            accuracy=contribution.accuracy,
+            damage=contribution.damage * multiplier,
+        )
+        for contribution in contributions
+    )
+
+
+def calculate_offensive_accuracy_contributions(
+    *,
+    monster: BaseMonster,
+    damage_result: OffensiveDamageResult,
+    rounds: int = 3,
+) -> tuple[OffensiveAccuracyContribution, ...]:
+    """Calculate accuracy contributions across the offensive CR window.
+
+    Args:
+        monster: Monster being evaluated.
+        damage_result: Offensive damage result selected for CR calculation.
+        rounds: Number of rounds in the CR evaluation window.
+
+    Returns:
+        Expected accuracy contributions across the full CR window.
+
+    Raises:
+        ValueError: If rounds is not positive.
+        TypeError: If the selected special action has unsupported usage.
+
+    """
+    if rounds < 1:
+        raise ValueError("Rounds must be positive")
+
+    actions_by_id = monster.get_abilities_by_id()
+
+    fallback_contributions = get_turn_routine_accuracy_contributions(
+        routine=damage_result.fallback_routine,
+        actions_by_id=actions_by_id,
+    )
+
+    if damage_result.special_action_id is None:
+        return scale_accuracy_contributions(
+            fallback_contributions,
+            multiplier=float(rounds),
+        )
+
+    special_action = actions_by_id[damage_result.special_action_id]
+
+    special_contributions = get_action_accuracy_contributions(
+        action=special_action,
+        actions_by_id=actions_by_id,
+    )
+
+    if isinstance(special_action.usage, LimitedUsage):
+        special_uses = min(
+            special_action.usage.uses,
+            rounds,
+        )
+        fallback_uses = rounds - special_uses
+
+        return (
+            *scale_accuracy_contributions(
+                special_contributions,
+                multiplier=float(special_uses),
+            ),
+            *scale_accuracy_contributions(
+                fallback_contributions,
+                multiplier=float(fallback_uses),
+            ),
+        )
+
+    if isinstance(special_action.usage, RechargeUsage):
+        expected_special_uses = 1.0 + special_action.usage.recharge_probability * (rounds - 1)
+
+        expected_fallback_uses = (1.0 - special_action.usage.recharge_probability) * (rounds - 1)
+
+        return (
+            *scale_accuracy_contributions(
+                special_contributions,
+                multiplier=expected_special_uses,
+            ),
+            *scale_accuracy_contributions(
+                fallback_contributions,
+                multiplier=expected_fallback_uses,
+            ),
+        )
+
+    raise TypeError("Selected special action must use LimitedUsage or RechargeUsage")
