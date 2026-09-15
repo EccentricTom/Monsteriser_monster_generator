@@ -36,12 +36,14 @@ def calculate_monster_defensive_cr(
     *,
     monster: BaseMonster,
     reference: ChallengeRatingReference,
+    rounds: int = 3,
 ) -> DefensiveChallengeRatingResult:
     """Calculate preliminary defensive CR from effective hit points.
 
     Args:
         monster: Monster being evaluated.
         reference: Challenge-rating reference data.
+        rounds: Number of rounds to be considered. Defaults to three.
 
     Returns:
         Preliminary defensive CR and supporting defensive statistics.
@@ -53,6 +55,7 @@ def calculate_monster_defensive_cr(
     """
     health_result = calculate_effective_hit_points(
         monster=monster,
+        rounds=rounds,
     )
 
     hit_point_challenge_rating = reference.get_hit_point_cr(

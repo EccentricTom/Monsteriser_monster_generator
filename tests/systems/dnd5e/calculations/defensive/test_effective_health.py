@@ -15,6 +15,7 @@ from monsteriser_monster_generator.systems.dnd5e.models.damage_adjustments impor
     Resistance,
     Vulnerability,
 )
+from monsteriser_monster_generator.systems.dnd5e.models.traits import RegenerationTrait
 
 
 def test_calculate_effective_hit_points_without_adjustments() -> None:
@@ -31,9 +32,10 @@ def test_calculate_effective_hit_points_without_adjustments() -> None:
 
     assert result == DefensiveHealthResult(
         base_hit_points=40,
+        bonus_hit_points=0.0,
         hit_point_multiplier=1.0,
         effective_hit_points=40.0,
-        bonus_effective_hit_points=0.0,
+        regeneration=None,
     )
 
 
@@ -56,9 +58,10 @@ def test_calculate_effective_hit_points_applies_resistance_multiplier() -> None:
 
     assert result == DefensiveHealthResult(
         base_hit_points=40,
+        bonus_hit_points=0.0,
         hit_point_multiplier=1.5,
         effective_hit_points=60.0,
-        bonus_effective_hit_points=0.0,
+        regeneration=None,
     )
 
 
@@ -81,9 +84,10 @@ def test_calculate_effective_hit_points_applies_immunity_multiplier() -> None:
 
     assert result == DefensiveHealthResult(
         base_hit_points=40,
+        bonus_hit_points=0.0,
         hit_point_multiplier=2.0,
         effective_hit_points=80.0,
-        bonus_effective_hit_points=0.0,
+        regeneration=None,
     )
 
 
@@ -106,9 +110,10 @@ def test_calculate_effective_hit_points_applies_vulnerability_multiplier() -> No
 
     assert result == DefensiveHealthResult(
         base_hit_points=40,
+        bonus_hit_points=0.0,
         hit_point_multiplier=0.5,
         effective_hit_points=20.0,
-        bonus_effective_hit_points=0.0,
+        regeneration=None,
     )
 
 
@@ -151,3 +156,53 @@ def test_calculate_effective_hit_points_rejects_non_positive_hit_points(hitpoint
 
     with raises(ValueError, match="Monster hit points must be positive"):
         calculate_effective_hit_points(monster=monster)
+
+
+def test_calculate_effective_hit_points_includes_regeneration() -> None:
+    """Include regeneration in effective HP."""
+    monster = BaseMonster(
+        name="Troll",
+        hitpoints=50,
+        traits=[
+            RegenerationTrait(
+                hit_points_per_round=10,
+            )
+        ],
+    )
+
+    result = calculate_effective_hit_points(
+        monster=monster,
+        rounds=3,
+    )
+
+    assert result.base_hit_points == 50
+    assert result.bonus_hit_points == 30
+    assert result.effective_hit_points == 80
+    assert result.regeneration is not None
+
+
+def test_calculate_effective_hit_points_applies_multiplier_after_regeneration() -> None:
+    """Apply damage-adjustment multiplier after regeneration HP."""
+    monster = BaseMonster(
+        name="Troll",
+        hitpoints=50,
+        expected_cr=5,
+        traits=[
+            RegenerationTrait(
+                hit_points_per_round=10,
+            )
+        ],
+        resistances=[
+            Resistance(damage_type="fire"),
+            Resistance(damage_type="acid"),
+            Resistance(damage_type="cold"),
+        ],
+    )
+
+    result = calculate_effective_hit_points(monster=monster)
+
+    assert result.base_hit_points == 50
+    assert result.bonus_hit_points == 30
+    assert result.hit_point_multiplier == 1.5
+    assert result.effective_hit_points == 120.0
+    assert result.regeneration is not None

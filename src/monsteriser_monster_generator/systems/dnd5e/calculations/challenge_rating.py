@@ -112,6 +112,7 @@ def calculate_monster_challenge_rating(
     defensive_result = calculate_monster_defensive_cr(
         monster=monster,
         reference=reference,
+        rounds=rounds,
     )
 
     average_challenge_rating, challenge_rating = combine_challenge_ratings(

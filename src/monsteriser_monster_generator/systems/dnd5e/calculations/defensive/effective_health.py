@@ -20,6 +20,7 @@ from dataclasses import dataclass
 
 from ...models.base_monster import BaseMonster
 from .damage_adjustments import calculate_damage_adjustment_multiplier
+from .regeneration import RegenerationAdjustmentResult, calculate_regeneration_effective_hit_points
 
 
 @dataclass(kw_only=True, frozen=True, slots=True)
@@ -28,26 +29,27 @@ class DefensiveHealthResult:
 
     Attributes:
         base_hit_points: The unmodified hit points of a monster
-        bonus_effective_hit_points: Additional hit points from features/traits
+        bonus_hit_points: Additional hit points from features/traits
         hit_point_multiplier: Multiplier applied to base hit points
         effective_hit_points: The effective HP used for defensive CR calculations
 
     """
 
     base_hit_points: int
-    bonus_effective_hit_points: float
+    bonus_hit_points: float
     hit_point_multiplier: float
     effective_hit_points: float
+    regeneration: RegenerationAdjustmentResult | None
 
 
 def calculate_effective_hit_points(
-    *,
-    monster: BaseMonster,
+    *, monster: BaseMonster, rounds: int = 3
 ) -> DefensiveHealthResult:
     """Calculate a monster's effective hit points.
 
     Args:
-        monster: The monster being evaluated
+        monster: The monster being evaluated.
+        rounds: Number of rounds to be considered. Defaults to three.
 
     Returns:
         Effective hit-point calculation details.
@@ -59,15 +61,24 @@ def calculate_effective_hit_points(
     if monster.hitpoints <= 0:
         raise ValueError("Monster hit points must be positive")
 
+    regeneration_result = calculate_regeneration_effective_hit_points(
+        monster=monster, rounds=rounds
+    )
+
+    bonus_hit_points = (
+        regeneration_result.effective_hit_points if regeneration_result is not None else 0.0
+    )
+
     hit_point_multiplier = calculate_damage_adjustment_multiplier(
         monster=monster,
     )
 
-    effective_hit_points = monster.hitpoints * hit_point_multiplier
+    effective_hit_points = (monster.hitpoints + bonus_hit_points) * hit_point_multiplier
 
     return DefensiveHealthResult(
         base_hit_points=monster.hitpoints,
-        bonus_effective_hit_points=0.0,
+        bonus_hit_points=bonus_hit_points,
         hit_point_multiplier=hit_point_multiplier,
         effective_hit_points=effective_hit_points,
+        regeneration=regeneration_result,
     )

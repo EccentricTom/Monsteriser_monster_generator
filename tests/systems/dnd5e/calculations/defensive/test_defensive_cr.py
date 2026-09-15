@@ -19,6 +19,7 @@ from monsteriser_monster_generator.systems.dnd5e.models.base_monster import (
 from monsteriser_monster_generator.systems.dnd5e.models.damage_adjustments import (
     Resistance,
 )
+from monsteriser_monster_generator.systems.dnd5e.models.traits import RegenerationTrait
 from monsteriser_monster_generator.systems.dnd5e.reference_data import (
     ChallengeRatingReference,
 )
@@ -55,6 +56,19 @@ def create_reference() -> ChallengeRatingReference:
                     "dpr_legend_min": 22,
                     "dpr_legend_max": 28,
                 },
+                {
+                    "challenge_rating": 3.0,
+                    "armor_class": 15,
+                    "save_bonus": 1,
+                    "hit_points_min": 55,
+                    "hit_points_max": 72,
+                    "attack_bonus": 6,
+                    "save_dc": 14,
+                    "dpr_min": 24,
+                    "dpr_max": 28,
+                    "dpr_legend_min": 29,
+                    "dpr_legend_max": 36,
+                },
             ]
         )
     )
@@ -85,9 +99,10 @@ def test_calculate_monster_defensive_cr_uses_effective_hit_points() -> None:
         ),
         health=DefensiveHealthResult(
             base_hit_points=30,
+            bonus_hit_points=0.0,
             hit_point_multiplier=1.0,
             effective_hit_points=30.0,
-            bonus_effective_hit_points=0.0,
+            regeneration=None,
         ),
     )
 
@@ -239,3 +254,59 @@ def test_calculate_monster_defensive_cr_ignores_one_point_ac_difference() -> Non
     assert result.armor_class.difference == 1
     assert result.armor_class.challenge_rating_steps == 0
     assert result.challenge_rating == 1
+
+
+def test_calculate_monster_defensive_cr_includes_regeneration() -> None:
+    """Include regeneration when determining HP-derived defensive CR."""
+    monster = BaseMonster(
+        name="Troll",
+        hitpoints=30,
+        expected_cr=1.0,
+        traits=[
+            RegenerationTrait(
+                hit_points_per_round=10,
+            )
+        ],
+    )
+
+    result = calculate_monster_defensive_cr(
+        monster=monster,
+        reference=create_reference(),
+        rounds=3,
+    )
+
+    assert result.health.base_hit_points == 30
+    assert result.health.bonus_hit_points == 30
+    assert result.health.effective_hit_points == 60.0
+    assert result.hit_point_challenge_rating == 3.0
+
+
+def test_calculate_monster_defensive_cr_forwards_round_count() -> None:
+    """Forward the evaluation window to regeneration calculations."""
+    monster = BaseMonster(
+        name="Troll",
+        hitpoints=30,
+        expected_cr=1.0,
+        traits=[
+            RegenerationTrait(
+                hit_points_per_round=10,
+            )
+        ],
+    )
+
+    one_round_result = calculate_monster_defensive_cr(
+        monster=monster,
+        reference=create_reference(),
+        rounds=1,
+    )
+
+    three_round_result = calculate_monster_defensive_cr(
+        monster=monster,
+        reference=create_reference(),
+        rounds=3,
+    )
+
+    assert (
+        three_round_result.health.effective_hit_points
+        > one_round_result.health.effective_hit_points
+    )
