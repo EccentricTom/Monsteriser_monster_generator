@@ -22,3 +22,16 @@ class RegenerationTrait(MonsterTrait):
         """Validate regeneration values."""
         if self.hit_points_per_round <= 0:
             raise ValueError("Regeneration hit points per round must be positive")
+
+
+@dataclass_json
+@dataclass(kw_only=True, frozen=True, slots=True)
+class LegendaryResistanceTrait(MonsterTrait):
+    """Represent a monster's use of legendary resistances."""
+
+    uses: int = 3
+
+    def __post_init__(self) -> None:
+        """Validate regeneration values."""
+        if self.uses <= 0:
+            raise ValueError("Legendary resistance uses must be positive")
