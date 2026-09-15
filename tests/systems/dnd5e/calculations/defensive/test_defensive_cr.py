@@ -306,7 +306,8 @@ def test_calculate_monster_defensive_cr_forwards_round_count() -> None:
         rounds=3,
     )
 
+    assert one_round_result.health.effective_hit_points == 40.0
+    assert three_round_result.health.effective_hit_points == 60.0
     assert (
-        three_round_result.health.effective_hit_points
-        > one_round_result.health.effective_hit_points
+        three_round_result.hit_point_challenge_rating > one_round_result.hit_point_challenge_rating
     )
