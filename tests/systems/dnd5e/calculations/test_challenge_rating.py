@@ -194,7 +194,13 @@ def test_calculate_monster_challenge_rating() -> None:
         origin="natural",
         attack_range="melee",
         attack_bonus=4,
-        damage=(DamageRoll(dice_count=1, die_size=4, damage_type="piercing"),),
+        damage=(
+            DamageRoll(
+                dice_count=1,
+                die_size=4,
+                damage_type="piercing",
+            ),
+        ),
     )
 
     monster = BaseMonster(

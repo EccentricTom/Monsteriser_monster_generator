@@ -87,6 +87,7 @@ def test_calculate_monster_defensive_cr_uses_effective_hit_points() -> None:
             base_hit_points=30,
             hit_point_multiplier=1.0,
             effective_hit_points=30.0,
+            bonus_effective_hit_points=0.0,
         ),
     )
 

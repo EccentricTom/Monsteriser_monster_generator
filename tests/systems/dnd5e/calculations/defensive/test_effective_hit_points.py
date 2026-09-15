@@ -33,6 +33,7 @@ def test_calculate_effective_hit_points_without_adjustments() -> None:
         base_hit_points=40,
         hit_point_multiplier=1.0,
         effective_hit_points=40.0,
+        bonus_effective_hit_points=0.0,
     )
 
 
@@ -57,6 +58,7 @@ def test_calculate_effective_hit_points_applies_resistance_multiplier() -> None:
         base_hit_points=40,
         hit_point_multiplier=1.5,
         effective_hit_points=60.0,
+        bonus_effective_hit_points=0.0,
     )
 
 
@@ -81,6 +83,7 @@ def test_calculate_effective_hit_points_applies_immunity_multiplier() -> None:
         base_hit_points=40,
         hit_point_multiplier=2.0,
         effective_hit_points=80.0,
+        bonus_effective_hit_points=0.0,
     )
 
 
@@ -105,6 +108,7 @@ def test_calculate_effective_hit_points_applies_vulnerability_multiplier() -> No
         base_hit_points=40,
         hit_point_multiplier=0.5,
         effective_hit_points=20.0,
+        bonus_effective_hit_points=0.0,
     )
 
 

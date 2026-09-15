@@ -19,9 +19,9 @@ class DefensiveChallengeRatingResult:
     """Summarize a simplified defensive CR calculation.
 
     Attributes:
-        challenge_rating: CR derived from effective hit points.
-        expected_armor_class: Expected AC for the HP-derived CR.
-        actual_armor_class: Monster's current armor class.
+        hit_point_challenge_rating: CR derived from effective hit points.
+        challenge_rating: Current challenge rating.
+        armor_class: Monster's current armor class.
         health: Effective hit-point result used for the calculation.
 
     """

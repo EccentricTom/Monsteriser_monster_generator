@@ -16,12 +16,9 @@ Conditional adjustments such as resistance only to nonmagical attacks are not
 currently supported.
 """
 
-from collections.abc import Sequence
 from dataclasses import dataclass
 
 from ...models.base_monster import BaseMonster
-from ...models.damage_adjustments import DamageAdjustment
-from ...models.model_types import DamageType
 from .damage_adjustments import calculate_damage_adjustment_multiplier
 
 
@@ -31,12 +28,14 @@ class DefensiveHealthResult:
 
     Attributes:
         base_hit_points: The unmodified hit points of a monster
+        bonus_effective_hit_points: Additional hit points from features/traits
         hit_point_multiplier: Multiplier applied to base hit points
         effective_hit_points: The effective HP used for defensive CR calculations
 
     """
 
     base_hit_points: int
+    bonus_effective_hit_points: float
     hit_point_multiplier: float
     effective_hit_points: float
 
@@ -68,21 +67,7 @@ def calculate_effective_hit_points(
 
     return DefensiveHealthResult(
         base_hit_points=monster.hitpoints,
+        bonus_effective_hit_points=0.0,
         hit_point_multiplier=hit_point_multiplier,
         effective_hit_points=effective_hit_points,
     )
-
-
-def get_adjusted_damage_types(
-    adjustments: Sequence[DamageAdjustment],
-) -> frozenset[DamageType]:
-    """Return the unique damage types represented by adjustments.
-
-    Args:
-        adjustments: Damage adjustments to normalize
-
-    Returns:
-        Unique damage types represented by the adjustments
-
-    """
-    return frozenset(adjustment.damage_type for adjustment in adjustments)
