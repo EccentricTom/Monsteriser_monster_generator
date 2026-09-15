@@ -8,6 +8,7 @@ from .actions import MonsterAction
 from .damage_adjustments import Immunity, Resistance, Vulnerability
 from .gear import Gear
 from .model_types import ActionTiming, MonsterSize
+from .traits import MonsterTrait
 
 
 @dataclass_json
@@ -35,7 +36,7 @@ class BaseMonster:
     is_legendary: bool = field(default=False)
     innate_spellcasting: bool = field(default=False)
 
-    traits: list[str] = field(default_factory=list[str])
+    traits: list[MonsterTrait] = field(default_factory=list[MonsterTrait])
     abilities: list[MonsterAction] = field(default_factory=list[MonsterAction])
     gear: list[Gear] = field(default_factory=list[Gear])
 
