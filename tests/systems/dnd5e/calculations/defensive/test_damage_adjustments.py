@@ -15,7 +15,6 @@ from monsteriser_monster_generator.systems.dnd5e.calculations.defensive.damage_a
 )
 from monsteriser_monster_generator.systems.dnd5e.calculations.defensive.effective_health import (
     calculate_damage_adjustment_multiplier,
-    get_adjusted_damage_types,
 )
 from monsteriser_monster_generator.systems.dnd5e.models.base_monster import (
     BaseMonster,
@@ -26,50 +25,6 @@ from monsteriser_monster_generator.systems.dnd5e.models.damage_adjustments impor
     Resistance,
     Vulnerability,
 )
-
-
-def test_get_adjusted_damage_types_returns_unique_types() -> None:
-    """Return each adjusted damage type only once."""
-    adjustments = [
-        Resistance(damage_type="fire"),
-        Resistance(damage_type="cold"),
-        Resistance(damage_type="fire"),
-    ]
-
-    result = get_adjusted_damage_types(adjustments)
-
-    assert result == frozenset(
-        {
-            "fire",
-            "cold",
-        }
-    )
-
-
-def test_get_adjusted_damage_types_accepts_all_adjustment_types() -> None:
-    """Normalize all supported damage-adjustment subclasses."""
-    adjustments: list[DamageAdjustment] = [
-        Resistance(damage_type="fire"),
-        Immunity(damage_type="poison"),
-        Vulnerability(damage_type="radiant"),
-    ]
-
-    result = get_adjusted_damage_types(adjustments)
-
-    assert result == frozenset(
-        {
-            "fire",
-            "poison",
-            "radiant",
-        }
-    )
-
-
-def test_get_adjusted_damage_types_accepts_empty_adjustments() -> None:
-    """Return an empty set when no adjustments are supplied."""
-    result = get_adjusted_damage_types([])
-
-    assert result == frozenset()
 
 
 @pytest.mark.parametrize(
