@@ -174,20 +174,23 @@ max-statements = 50
 
 [tool.ruff.lint.per-file-ignores]
 "tests/**/*.py" = [
-    # Tests commonly use assert directly.
+    "D100",
+    "D101",
+    "D102",
+    "D103",
+    "D104",
+    "D105",
+    "D106",
+    "D107",
     "S101",
-
-    # Fixtures and mocks commonly leave arguments unused.
     "ARG001",
     "ARG002",
-
-    # Test functions may legitimately contain many statements.
     "PLR0915",
 ]
 
 "**/__init__.py" = [
-    # __init__.py files commonly re-export imported names.
     "F401",
+    "D104",
 ]
 
 [tool.ruff.format]
