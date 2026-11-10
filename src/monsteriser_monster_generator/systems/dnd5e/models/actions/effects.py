@@ -89,7 +89,7 @@ class ConditionEffect:
 class SavingThrowDamage:
     """Represent damage resolved through a saving throw instead of attack action."""
 
-    damage: tuple[DamageRoll, ...]
+    damage: tuple[DamageModel, ...]
     success_outcome: SavingThrowOutcome
 
     def average_failed_save(self) -> float:
