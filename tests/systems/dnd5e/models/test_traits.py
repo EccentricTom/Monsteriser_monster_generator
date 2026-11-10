@@ -2,8 +2,10 @@
 
 from pytest import raises
 
+from monsteriser_monster_generator.systems.dnd5e.models.actions.effects import DamageRoll
 from monsteriser_monster_generator.systems.dnd5e.models.traits import (
     LegendaryResistanceTrait,
+    PassiveDamageTrait,
     RegenerationTrait,
 )
 
@@ -34,3 +36,43 @@ def test_legendary_resistance_trait_fails_negative_uses() -> None:
     """Test that the legendary resistance model fails when uses are not positive."""
     with raises(ValueError, match="Legendary resistance uses must be positive"):
         LegendaryResistanceTrait(uses=0)
+
+
+def test_passive_damage_trait() -> None:
+    """Test the instantation of the passive damage trait."""
+    test_passive_damage_trait = PassiveDamageTrait(
+        damage=(
+            DamageRoll(
+                dice_count=1,
+                die_size=6,
+                modifier=0,
+                damage_type="slashing",
+            ),
+        ),
+        expected_targets=1.0,
+    )
+    assert test_passive_damage_trait.damage == (
+        DamageRoll(
+            dice_count=1,
+            die_size=6,
+            modifier=0,
+            damage_type="slashing",
+        ),
+    )
+    assert test_passive_damage_trait.expected_targets == 1.0
+
+
+def test_passive_damage_trait_fails_negative_or_none_expected_targets() -> None:
+    """Test that the passive damage model fails when expected targets are not positive."""
+    with raises(ValueError, match="Expected targets must be positive"):
+        PassiveDamageTrait(
+            damage=(
+                DamageRoll(
+                    dice_count=1,
+                    die_size=6,
+                    modifier=0,
+                    damage_type="slashing",
+                ),
+            ),
+            expected_targets=0,
+        )

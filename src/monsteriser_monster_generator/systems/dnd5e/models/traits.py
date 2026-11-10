@@ -4,6 +4,8 @@ from dataclasses import dataclass
 
 from dataclasses_json import dataclass_json
 
+from ..models.actions.effects import DamageRoll
+
 
 @dataclass_json
 @dataclass(kw_only=True, frozen=True, slots=True)
@@ -35,3 +37,17 @@ class LegendaryResistanceTrait(MonsterTrait):
         """Validate regeneration values."""
         if self.uses <= 0:
             raise ValueError("Legendary resistance uses must be positive")
+
+
+@dataclass_json
+@dataclass(kw_only=True, frozen=True, slots=True)
+class PassiveDamageTrait(MonsterTrait):
+    """Represent automatic damage dealt each round."""
+
+    damage: tuple[DamageRoll, ...]
+    expected_targets: float = 1.0
+
+    def __post_init__(self) -> None:
+        """Validate positive number of expected targets."""
+        if self.expected_targets <= 0:
+            raise ValueError("Expected targets must be positive")
