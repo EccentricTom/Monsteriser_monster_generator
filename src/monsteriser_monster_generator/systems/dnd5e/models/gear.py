@@ -5,7 +5,7 @@ from typing import Literal
 
 from dataclasses_json import dataclass_json
 
-from .actions import AttackAction, DamageRoll
+from .actions import AttackAction, DamageModel, DamageRoll
 from .model_types import (
     AbilityName,
     ArmorDetails,
@@ -154,7 +154,7 @@ class Weapon(Gear):
         damage_modifier: int,
         action_id: str | None = None,
         action_name: str | None = None,
-        additional_damage: tuple[DamageRoll, ...] = (),
+        additional_damage: tuple[DamageModel, ...] = (),
     ) -> AttackAction:
         """Create an attack action from this weapon.
 
