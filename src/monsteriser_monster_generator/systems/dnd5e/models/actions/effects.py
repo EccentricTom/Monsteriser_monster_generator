@@ -53,6 +53,30 @@ class DamageRoll:
 
 
 @dataclass(kw_only=True, frozen=True, slots=True)
+class FlatDamage:
+    """Represent a fixed amount of damage."""
+
+    amount: float
+    damage_type: DamageType
+
+    def __post_init__(self) -> None:
+        """Validate the fixed damage amount."""
+        if self.amount < 0:
+            raise ValueError("Flat damage cannot be negative")
+
+    def average_damage(self) -> float:
+        """Return the fixed damage amount."""
+        return self.amount
+
+    def stat_block_text(self) -> str:
+        """Return the damage text used in a stat block."""
+        return f"{self.amount} {self.damage_type} damage"
+
+
+type DamageModel = DamageRoll | FlatDamage
+
+
+@dataclass(kw_only=True, frozen=True, slots=True)
 class ConditionEffect:
     """Represent a condition imposed by an ability."""
 
