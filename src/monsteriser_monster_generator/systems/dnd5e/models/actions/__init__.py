@@ -2,7 +2,7 @@
 
 from .attacks import AttackAction, SavingThrowAction
 from .base import MonsterAction
-from .effects import ConditionEffect, DamageRoll, SavingThrowDamage
+from .effects import ConditionEffect, DamageModel, DamageRoll, FlatDamage, SavingThrowDamage
 from .multiattack import (
     ActionSubstitution,
     ChoiceActionUse,
@@ -21,8 +21,10 @@ __all__ = [
     "AttackAction",
     "ChoiceActionUse",
     "ConditionEffect",
+    "DamageModel",
     "DamageRoll",
     "FixedActionUse",
+    "FlatDamage",
     "LimitedUsage",
     "MonsterAction",
     "MultiattackAction",

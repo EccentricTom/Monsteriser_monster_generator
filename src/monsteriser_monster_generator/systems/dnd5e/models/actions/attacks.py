@@ -5,7 +5,7 @@ from typing import Literal
 
 from ..model_types import AbilityName, AttackRange
 from .base import MonsterAction
-from .effects import ConditionEffect, DamageRoll, SavingThrowDamage
+from .effects import ConditionEffect, DamageModel, SavingThrowDamage
 
 
 @dataclass(kw_only=True, frozen=True, slots=True)
@@ -22,7 +22,7 @@ class AttackAction(MonsterAction):
 
     attack_range: AttackRange
     attack_bonus: int
-    damage: tuple[DamageRoll, ...]
+    damage: tuple[DamageModel, ...]
 
     conditions: tuple[ConditionEffect, ...] = ()
 
@@ -39,7 +39,7 @@ class AttackAction(MonsterAction):
 
     def average_damage(self) -> float:
         """Average damage of the attack."""
-        return sum(damage_roll.average_damage() for damage_roll in self.damage)
+        return sum(damage_component.average_damage() for damage_component in self.damage)
 
     def generate_description(self) -> str:
         """Generate a description of the attack action based on DnD 2024 wording.
@@ -51,7 +51,7 @@ class AttackAction(MonsterAction):
         if self.description_override is not None:
             return self.description_override
         attack_text = self._attack_roll_text()
-        damage_text = self._damage_roll_text()
+        damage_text = self._damage_component_text()
 
         description = f"{attack_text} Hit: {damage_text}"
 
@@ -78,15 +78,15 @@ class AttackAction(MonsterAction):
                     f"reach {self._format_reach} or range {self._format_range()}."
                 )
 
-    def _damage_roll_text(self) -> str:
-        """Generate the text for the damage roll part of the description.
+    def _damage_component_text(self) -> str:
+        """Generate the text for the damage component part of the description.
 
-        This shows both the roll and the average damage.
+        This shows both the roll and the average damage for rolled damage, or just the flat damage for flat damage.
         """
         if not self.damage:
             raise ValueError(f"Action {self.action_id!r} has no damage")
 
-        damage_parts = tuple(damage_roll.stat_block_text() for damage_roll in self.damage)
+        damage_parts = tuple(damage_component.stat_block_text() for damage_component in self.damage)
 
         return " plus ".join(damage_parts)
 
@@ -170,7 +170,7 @@ class SavingThrowAction(MonsterAction):
             raise ValueError(f"Action {self.action_id!r} has no saving-throw damage")
 
         damage_parts = tuple(
-            damage_roll.stat_block_text() for damage_roll in self.saving_throw.damage
+            damage_component.stat_block_text() for damage_component in self.saving_throw.damage
         )
 
         return " plus ".join(damage_parts)
