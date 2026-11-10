@@ -75,7 +75,7 @@ class AttackAction(MonsterAction):
             case "melee_or_ranged":
                 return (
                     f"Melee or ranged attack roll: {attack_bonus}, "
-                    f"reach {self._format_reach} or range {self._format_range()}."
+                    f"reach {self._format_reach()} or range {self._format_range()}."
                 )
 
     def _damage_component_text(self) -> str:
