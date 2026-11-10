@@ -4,7 +4,7 @@ from dataclasses import dataclass
 
 from dataclasses_json import dataclass_json
 
-from ..models.actions.effects import DamageRoll
+from ..models.actions import DamageModel
 
 
 @dataclass_json
@@ -44,7 +44,7 @@ class LegendaryResistanceTrait(MonsterTrait):
 class PassiveDamageTrait(MonsterTrait):
     """Represent automatic damage dealt each round."""
 
-    damage: tuple[DamageRoll, ...]
+    damage: tuple[DamageModel, ...]
     expected_targets: float = 1.0
 
     def __post_init__(self) -> None:
