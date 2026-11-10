@@ -20,6 +20,10 @@ from dataclasses import dataclass
 
 from ...models.base_monster import BaseMonster
 from .damage_adjustments import calculate_damage_adjustment_multiplier
+from .legendary_resistance import (
+    LegendaryResistanceAdjustmentResult,
+    calculate_legendary_resistance_effective_hit_points,
+)
 from .regeneration import RegenerationAdjustmentResult, calculate_regeneration_effective_hit_points
 
 
@@ -40,10 +44,13 @@ class DefensiveHealthResult:
     hit_point_multiplier: float
     effective_hit_points: float
     regeneration: RegenerationAdjustmentResult | None
+    legendary_resistance: LegendaryResistanceAdjustmentResult | None
 
 
 def calculate_effective_hit_points(
-    *, monster: BaseMonster, rounds: int = 3
+    *,
+    monster: BaseMonster,
+    rounds: int = 3,
 ) -> DefensiveHealthResult:
     """Calculate a monster's effective hit points.
 
@@ -65,9 +72,21 @@ def calculate_effective_hit_points(
         monster=monster, rounds=rounds
     )
 
-    bonus_hit_points = (
+    legendary_resistance_result = calculate_legendary_resistance_effective_hit_points(
+        monster=monster,
+    )
+
+    regeneration_hit_points = (
         regeneration_result.effective_hit_points if regeneration_result is not None else 0.0
     )
+
+    legendary_resistance_hit_points = (
+        legendary_resistance_result.effective_hit_points
+        if legendary_resistance_result is not None
+        else 0.0
+    )
+
+    bonus_hit_points = regeneration_hit_points + legendary_resistance_hit_points
 
     hit_point_multiplier = calculate_damage_adjustment_multiplier(
         monster=monster,
@@ -81,4 +100,5 @@ def calculate_effective_hit_points(
         hit_point_multiplier=hit_point_multiplier,
         effective_hit_points=effective_hit_points,
         regeneration=regeneration_result,
+        legendary_resistance=legendary_resistance_result,
     )

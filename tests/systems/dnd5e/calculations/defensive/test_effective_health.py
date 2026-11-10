@@ -15,7 +15,10 @@ from monsteriser_monster_generator.systems.dnd5e.models.damage_adjustments impor
     Resistance,
     Vulnerability,
 )
-from monsteriser_monster_generator.systems.dnd5e.models.traits import RegenerationTrait
+from monsteriser_monster_generator.systems.dnd5e.models.traits import (
+    LegendaryResistanceTrait,
+    RegenerationTrait,
+)
 
 
 def test_calculate_effective_hit_points_without_adjustments() -> None:
@@ -36,6 +39,7 @@ def test_calculate_effective_hit_points_without_adjustments() -> None:
         hit_point_multiplier=1.0,
         effective_hit_points=40.0,
         regeneration=None,
+        legendary_resistance=None,
     )
 
 
@@ -62,6 +66,7 @@ def test_calculate_effective_hit_points_applies_resistance_multiplier() -> None:
         hit_point_multiplier=1.5,
         effective_hit_points=60.0,
         regeneration=None,
+        legendary_resistance=None,
     )
 
 
@@ -88,6 +93,7 @@ def test_calculate_effective_hit_points_applies_immunity_multiplier() -> None:
         hit_point_multiplier=2.0,
         effective_hit_points=80.0,
         regeneration=None,
+        legendary_resistance=None,
     )
 
 
@@ -114,6 +120,7 @@ def test_calculate_effective_hit_points_applies_vulnerability_multiplier() -> No
         hit_point_multiplier=0.5,
         effective_hit_points=20.0,
         regeneration=None,
+        legendary_resistance=None,
     )
 
 
@@ -206,3 +213,54 @@ def test_calculate_effective_hit_points_applies_multiplier_after_regeneration() 
     assert result.hit_point_multiplier == 1.5
     assert result.effective_hit_points == 120.0
     assert result.regeneration is not None
+
+
+def test_calculate_effective_hit_points_includes_legendary_resistance() -> None:
+    """Include Legendary Resistance in effective HP."""
+    monster = BaseMonster(
+        name="Legendary Monster",
+        hitpoints=100,
+        expected_cr=8.0,
+        traits=[
+            LegendaryResistanceTrait(
+                uses=3,
+            )
+        ],
+    )
+
+    result = calculate_effective_hit_points(
+        monster=monster,
+    )
+
+    assert result.base_hit_points == 100
+    assert result.bonus_hit_points == 60.0
+    assert result.effective_hit_points == 160.0
+    assert result.legendary_resistance is not None
+
+
+def test_calculate_effective_hit_points_combines_defensive_health_bonuses() -> None:
+    """Combine regeneration and Legendary Resistance effective HP."""
+    monster = BaseMonster(
+        name="Legendary Troll",
+        hitpoints=100,
+        expected_cr=8.0,
+        traits=[
+            RegenerationTrait(
+                hit_points_per_round=10,
+            ),
+            LegendaryResistanceTrait(
+                uses=3,
+            ),
+        ],
+    )
+
+    result = calculate_effective_hit_points(
+        monster=monster,
+        rounds=3,
+    )
+
+    assert result.base_hit_points == 100
+    assert result.bonus_hit_points == 90.0
+    assert result.effective_hit_points == 190.0
+    assert result.regeneration is not None
+    assert result.legendary_resistance is not None

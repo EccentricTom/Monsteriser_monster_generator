@@ -19,7 +19,10 @@ from monsteriser_monster_generator.systems.dnd5e.models.base_monster import (
 from monsteriser_monster_generator.systems.dnd5e.models.damage_adjustments import (
     Resistance,
 )
-from monsteriser_monster_generator.systems.dnd5e.models.traits import RegenerationTrait
+from monsteriser_monster_generator.systems.dnd5e.models.traits import (
+    LegendaryResistanceTrait,
+    RegenerationTrait,
+)
 from monsteriser_monster_generator.systems.dnd5e.reference_data import (
     ChallengeRatingReference,
 )
@@ -69,6 +72,19 @@ def create_reference() -> ChallengeRatingReference:
                     "dpr_legend_min": 29,
                     "dpr_legend_max": 36,
                 },
+                {
+                    "challenge_rating": 4.0,
+                    "armor_class": 15,
+                    "save_bonus": 2,
+                    "hit_points_min": 73,
+                    "hit_points_max": 90,
+                    "attack_bonus": 6,
+                    "save_dc": 14,
+                    "dpr_min": 29,
+                    "dpr_max": 34,
+                    "dpr_legend_min": 37,
+                    "dpr_legend_max": 43,
+                },
             ]
         )
     )
@@ -103,6 +119,7 @@ def test_calculate_monster_defensive_cr_uses_effective_hit_points() -> None:
             hit_point_multiplier=1.0,
             effective_hit_points=30.0,
             regeneration=None,
+            legendary_resistance=None,
         ),
     )
 
@@ -311,3 +328,27 @@ def test_calculate_monster_defensive_cr_forwards_round_count() -> None:
     assert (
         three_round_result.hit_point_challenge_rating > one_round_result.hit_point_challenge_rating
     )
+
+
+def test_calculate_monster_defensive_cr_includes_legendary_resistance() -> None:
+    """Include Legendary Resistance when determining HP-derived CR."""
+    monster = BaseMonster(
+        name="Legendary Monster",
+        hitpoints=30,
+        expected_cr=5.0,
+        traits=[
+            LegendaryResistanceTrait(
+                uses=3,
+            )
+        ],
+    )
+
+    result = calculate_monster_defensive_cr(
+        monster=monster,
+        reference=create_reference(),
+    )
+
+    assert result.health.base_hit_points == 30
+    assert result.health.bonus_hit_points == 60.0
+    assert result.health.effective_hit_points == 90.0
+    assert result.health.legendary_resistance is not None
