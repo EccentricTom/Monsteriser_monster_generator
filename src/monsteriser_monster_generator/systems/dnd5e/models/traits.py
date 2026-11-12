@@ -1,10 +1,17 @@
 """Define structured monster traits for D&D 5E 2024."""
 
 from dataclasses import dataclass
+from typing import Literal
 
 from dataclasses_json import dataclass_json
 
 from ..models.actions import DamageModel
+
+type PassiveDamageTrigger = Literal[
+    "aura",
+    "retaliation",
+    "conditional",
+]
 
 
 @dataclass_json
@@ -45,9 +52,5 @@ class PassiveDamageTrait(MonsterTrait):
     """Represent automatic damage dealt each round."""
 
     damage: tuple[DamageModel, ...]
-    expected_targets: float = 1.0
-
-    def __post_init__(self) -> None:
-        """Validate positive number of expected targets."""
-        if self.expected_targets <= 0:
-            raise ValueError("Expected targets must be positive")
+    trigger: PassiveDamageTrigger
+    expected_targets: float | None = 1.0

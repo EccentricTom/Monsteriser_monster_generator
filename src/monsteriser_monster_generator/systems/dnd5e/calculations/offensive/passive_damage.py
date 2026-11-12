@@ -13,6 +13,20 @@ class PassiveDamageResult:
     average_damage_per_round: float
 
 
+def get_passive_damage_expected_targets(
+    *,
+    trait: PassiveDamageTrait,
+) -> float:
+    """Return the expected number of passive-damage instances per round."""
+    if trait.expected_targets is not None:
+        return trait.expected_targets
+
+    if trait.trigger == "aura":
+        return 2.0
+
+    return 1.0
+
+
 def calculate_passive_trait_average_damage(
     *,
     trait: PassiveDamageTrait,
@@ -20,7 +34,9 @@ def calculate_passive_trait_average_damage(
     """Calculate the average damage contributed by a passive damage trait."""
     average_damage = sum(damage.average_damage() for damage in trait.damage)
 
-    return average_damage * trait.expected_targets
+    expected_targets = get_passive_damage_expected_targets(trait=trait)
+
+    return average_damage * expected_targets
 
 
 def calculate_passive_damage(
