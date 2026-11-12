@@ -1,4 +1,4 @@
-"""Calculations related to pasive damage traits for monsters in D&D 5E 2024."""
+"""Calculations related to passive damage traits for monsters in D&D 5E 2024."""
 
 from dataclasses import dataclass
 
@@ -27,7 +27,7 @@ def calculate_passive_damage(
     *,
     monster: BaseMonster,
 ) -> PassiveDamageResult:
-    """Calculate passive Damage contributed by monster traits."""
+    """Calculate passive damage contributed by monster traits."""
     passive_traits = (trait for trait in monster.traits if isinstance(trait, PassiveDamageTrait))
 
     average_damage_per_round = sum(
