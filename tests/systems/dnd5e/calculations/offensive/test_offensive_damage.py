@@ -2,16 +2,20 @@
 
 from dataclasses import replace
 
-from pytest import approx, raises  # type: ignore
+from pytest import approx, mark, raises  # type: ignore
 
 from monsteriser_monster_generator.systems.dnd5e.calculations import (
     OffensiveDamageResult,
     calculate_monster_offensive_damage,
 )
 from monsteriser_monster_generator.systems.dnd5e.calculations.combat_routines import TurnRoutine
+from monsteriser_monster_generator.systems.dnd5e.calculations.offensive.passive_damage import (
+    PassiveDamageResult,
+)
 from monsteriser_monster_generator.systems.dnd5e.models.actions import (
     AttackAction,
     DamageRoll,
+    FlatDamage,
     LimitedUsage,
     RechargeUsage,
 )
@@ -19,6 +23,7 @@ from monsteriser_monster_generator.systems.dnd5e.models.base_monster import Base
 from monsteriser_monster_generator.systems.dnd5e.models.model_types import (
     ActionTiming,
 )
+from monsteriser_monster_generator.systems.dnd5e.models.traits import PassiveDamageTrait
 
 
 def create_attack(
@@ -79,6 +84,7 @@ def test_offensive_damage_uses_repeatable_turn() -> None:
 
     assert result == OffensiveDamageResult(
         average_damage_per_round=10.0,
+        passive_damage=PassiveDamageResult(average_damage_per_round=0.0),
         fallback_routine=TurnRoutine(
             primary_action_id="bite",
         ),
@@ -193,6 +199,7 @@ def test_offensive_damage_selects_fallback_action() -> None:
 
     assert result == OffensiveDamageResult(
         average_damage_per_round=10.0,
+        passive_damage=PassiveDamageResult(average_damage_per_round=0.0),
         fallback_routine=TurnRoutine(
             primary_action_id="bite",
         ),
@@ -200,7 +207,7 @@ def test_offensive_damage_selects_fallback_action() -> None:
     )
 
 
-def test_offensvie_damage_rejects_non_positive_rounds() -> None:
+def test_offensive_damage_rejects_non_positive_rounds() -> None:
     """Reject a calculation that has a non-positive value for rounds."""
     bite = create_attack(
         action_id="bite",
@@ -268,3 +275,62 @@ def test_offensive_damage_selects_strongest_special_option() -> None:
 
     assert result.special_action_id == "recharge_attack"
     assert result.average_damage_per_round == 14.0
+
+
+@mark.parametrize(
+    ("usage", "expected_active_damage", "expected_special_action_id"),
+    [
+        (None, 9.0, None),
+        (LimitedUsage(uses=1, period="day"), 12.0, "special_attack"),
+        (RechargeUsage(recharge_minimum=5), 14.0, "special_attack"),
+    ],
+)
+def test_offensive_damage_adds_passive_damage(
+    usage: LimitedUsage | RechargeUsage | None,
+    expected_active_damage: float,
+    expected_special_action_id: str | None,
+) -> None:
+    """Add passive damage once without changing the strongest active option."""
+    fallback = create_attack(
+        action_id="bite",
+        dice_count=2,
+        die_size=6,
+        modifier=2,
+    )
+    abilities = [fallback]
+    if usage is not None:
+        abilities.append(
+            replace(
+                create_attack(
+                    action_id="special_attack",
+                    dice_count=4,
+                    die_size=6,
+                    modifier=4,
+                ),
+                usage=usage,
+            )
+        )
+    monster = BaseMonster(
+        name="Burning Monster",
+        abilities=abilities,
+        traits=[
+            PassiveDamageTrait(
+                damage=(FlatDamage(amount=5, damage_type="fire"),),
+                trigger="aura",
+                expected_targets=None,
+            ),
+            PassiveDamageTrait(
+                damage=(FlatDamage(amount=10, damage_type="radiant"),),
+                trigger="retaliation",
+            ),
+        ],
+    )
+
+    result = calculate_monster_offensive_damage(monster)
+
+    assert result == OffensiveDamageResult(
+        average_damage_per_round=expected_active_damage + 20.0,
+        fallback_routine=TurnRoutine(primary_action_id="bite"),
+        passive_damage=PassiveDamageResult(average_damage_per_round=20.0),
+        special_action_id=expected_special_action_id,
+    )

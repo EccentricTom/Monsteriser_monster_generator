@@ -13,6 +13,7 @@ from .damage import (
     calculate_action_average_damage,
     find_maximum_damage_turn,
 )
+from .passive_damage import PassiveDamageResult, calculate_passive_damage
 from .usage_damage import (
     calculate_limited_use_average_damage,
     calculate_recharge_average_damage,
@@ -32,6 +33,7 @@ class OffensiveDamageResult:
 
     average_damage_per_round: float
     fallback_routine: TurnRoutine
+    passive_damage: PassiveDamageResult
     special_action_id: str | None = None
 
 
@@ -69,9 +71,8 @@ def calculate_monster_offensive_damage(
         actions_by_id=actions_by_id,
     )
 
-    best_result = OffensiveDamageResult(
-        average_damage_per_round=fallback_damage, fallback_routine=fallback_routine
-    )
+    best_active_damage = fallback_damage
+    special_action_id: str | None = None
 
     for action in monster.get_abilities_by_timing("action"):
         candidate_damage = _calculate_special_action_damage(
@@ -84,16 +85,22 @@ def calculate_monster_offensive_damage(
         if candidate_damage is None:
             continue
 
-        if candidate_damage <= best_result.average_damage_per_round:
+        if candidate_damage <= best_active_damage:
             continue
 
-        best_result = OffensiveDamageResult(
-            average_damage_per_round=candidate_damage,
-            fallback_routine=fallback_routine,
-            special_action_id=action.action_id,
-        )
+        best_active_damage = candidate_damage
+        special_action_id = action.action_id
 
-    return best_result
+    passive_damage = calculate_passive_damage(
+        monster=monster,
+    )
+
+    return OffensiveDamageResult(
+        average_damage_per_round=(best_active_damage + passive_damage.average_damage_per_round),
+        fallback_routine=fallback_routine,
+        passive_damage=passive_damage,
+        special_action_id=special_action_id,
+    )
 
 
 def _calculate_special_action_damage(

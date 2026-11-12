@@ -1,4 +1,4 @@
-from pytest import approx  # pyright: ignore[reportUnknownVariableType]
+from pytest import approx, mark  # pyright: ignore[reportUnknownVariableType]
 
 from monsteriser_monster_generator.systems.dnd5e.calculations.combat_routines import TurnRoutine
 from monsteriser_monster_generator.systems.dnd5e.calculations.offensive.accuracy import (
@@ -9,9 +9,13 @@ from monsteriser_monster_generator.systems.dnd5e.calculations.offensive.accuracy
 from monsteriser_monster_generator.systems.dnd5e.calculations.offensive.offensive_damage import (
     OffensiveDamageResult,
 )
+from monsteriser_monster_generator.systems.dnd5e.calculations.offensive.passive_damage import (
+    PassiveDamageResult,
+)
 from monsteriser_monster_generator.systems.dnd5e.models.actions import (
     AttackAction,
     DamageRoll,
+    FlatDamage,
     SavingThrowAction,
     SavingThrowDamage,
 )
@@ -22,9 +26,13 @@ from monsteriser_monster_generator.systems.dnd5e.models.actions.usage import (
 from monsteriser_monster_generator.systems.dnd5e.models.base_monster import (
     BaseMonster,
 )
+from monsteriser_monster_generator.systems.dnd5e.models.traits import PassiveDamageTrait
 
 
-def test_calculate_offensive_accuracy_contributions_uses_fallback_only() -> None:
+@mark.parametrize("passive_damage", [0.0, 10.0])
+def test_calculate_offensive_accuracy_contributions_uses_fallback_only(
+    passive_damage: float,
+) -> None:
     """Scale fallback accuracy contributions across the full CR window."""
     bite = AttackAction(
         action_id="bite",
@@ -45,10 +53,17 @@ def test_calculate_offensive_accuracy_contributions_uses_fallback_only() -> None
     monster = BaseMonster(
         name="Test Monster",
         abilities=[bite],
+        traits=[
+            PassiveDamageTrait(
+                damage=(FlatDamage(amount=passive_damage, damage_type="fire"),),
+                trigger="retaliation",
+            ),
+        ],
     )
 
     damage_result = OffensiveDamageResult(
-        average_damage_per_round=8.5,
+        average_damage_per_round=8.5 + passive_damage,
+        passive_damage=PassiveDamageResult(average_damage_per_round=passive_damage),
         fallback_routine=TurnRoutine(
             primary_action_id="bite",
         ),
@@ -71,7 +86,10 @@ def test_calculate_offensive_accuracy_contributions_uses_fallback_only() -> None
     )
 
 
-def test_calculate_offensive_accuracy_contributions_uses_limited_action() -> None:
+@mark.parametrize("passive_damage", [0.0, 10.0])
+def test_calculate_offensive_accuracy_contributions_uses_limited_action(
+    passive_damage: float,
+) -> None:
     """Weight limited-use and fallback accuracy across the CR window."""
     bite = AttackAction(
         action_id="bite",
@@ -114,10 +132,17 @@ def test_calculate_offensive_accuracy_contributions_uses_limited_action() -> Non
             bite,
             fire_breath,
         ],
+        traits=[
+            PassiveDamageTrait(
+                damage=(FlatDamage(amount=passive_damage, damage_type="fire"),),
+                trigger="retaliation",
+            ),
+        ],
     )
 
     damage_result = OffensiveDamageResult(
-        average_damage_per_round=(21.0 + 8.5 + 8.5) / 3,
+        average_damage_per_round=(21.0 + 8.5 + 8.5) / 3 + passive_damage,
+        passive_damage=PassiveDamageResult(average_damage_per_round=passive_damage),
         fallback_routine=TurnRoutine(
             primary_action_id="bite",
         ),
@@ -148,7 +173,10 @@ def test_calculate_offensive_accuracy_contributions_uses_limited_action() -> Non
     )
 
 
-def test_calculate_offensive_accuracy_contributions_uses_recharge_action() -> None:
+@mark.parametrize("passive_damage", [0.0, 10.0])
+def test_calculate_offensive_accuracy_contributions_uses_recharge_action(
+    passive_damage: float,
+) -> None:
     """Weight recharge and fallback accuracy by expected usage."""
     bite = AttackAction(
         action_id="bite",
@@ -191,10 +219,17 @@ def test_calculate_offensive_accuracy_contributions_uses_recharge_action() -> No
             bite,
             fire_breath,
         ],
+        traits=[
+            PassiveDamageTrait(
+                damage=(FlatDamage(amount=passive_damage, damage_type="fire"),),
+                trigger="retaliation",
+            ),
+        ],
     )
 
     damage_result = OffensiveDamageResult(
-        average_damage_per_round=0.0,
+        average_damage_per_round=(49.0 + 17 / 3) / 3 + passive_damage,
+        passive_damage=PassiveDamageResult(average_damage_per_round=passive_damage),
         fallback_routine=TurnRoutine(
             primary_action_id="bite",
         ),
