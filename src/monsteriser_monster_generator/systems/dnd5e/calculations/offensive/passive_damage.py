@@ -18,7 +18,7 @@ def calculate_passive_trait_average_damage(
     trait: PassiveDamageTrait,
 ) -> float:
     """Calculate the average damage contributed by a passive damage trait."""
-    average_damage = sum(damage_roll.average_damage() for damage_roll in trait.damage)
+    average_damage = sum(damage.average_damage() for damage in trait.damage)
 
     return average_damage * trait.expected_targets
 

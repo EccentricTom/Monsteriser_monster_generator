@@ -7,7 +7,7 @@ from ..models.model_types import AbilityModifierName, ActionTiming, AttackRange,
 
 
 @dataclass(kw_only=True, frozen=True, slots=True)
-class DamageTemplate:
+class DamageRollTemplate:
     """Describe one damage component of an attack template."""
 
     dice_count: int
@@ -47,7 +47,7 @@ class NaturalAttackTemplate:
     name: str
     attack_range: AttackRange
     ability_modifier: AbilityModifierName
-    damage: tuple[DamageTemplate, ...]
+    damage: tuple[DamageRollTemplate, ...]
 
     timing: ActionTiming = "action"
 
@@ -67,7 +67,7 @@ class NaturalAttackTemplate:
         ability_modifier: int,
         action_id: str | None = None,
         action_name: str | None = None,
-        additional_damage: tuple[DamageTemplate, ...] = (),
+        additional_damage: tuple[DamageRollTemplate, ...] = (),
     ) -> AttackAction:
         """Create a configured natural attack action from the template.
 
@@ -108,7 +108,7 @@ class NaturalAttackTemplate:
 
     def with_additional_damage(
         self,
-        *additional_damage: DamageTemplate,
+        *additional_damage: DamageRollTemplate,
         template_id: str | None = None,
         name: str | None = None,
     ) -> "NaturalAttackTemplate":
@@ -139,7 +139,7 @@ BITE = NaturalAttackTemplate(
     reach_ft=5,
     reach_m=1.5,
     damage=(
-        DamageTemplate(
+        DamageRollTemplate(
             dice_count=1,
             die_size=6,
             damage_type="piercing",
@@ -156,7 +156,7 @@ CLAW = NaturalAttackTemplate(
     reach_ft=5,
     reach_m=1.5,
     damage=(
-        DamageTemplate(
+        DamageRollTemplate(
             dice_count=1,
             die_size=6,
             damage_type="slashing",
@@ -172,7 +172,7 @@ TENTACLE = NaturalAttackTemplate(
     reach_ft=10,
     reach_m=3,
     damage=(
-        DamageTemplate(
+        DamageRollTemplate(
             dice_count=1,
             die_size=8,
             damage_type="bludgeoning",
@@ -188,7 +188,7 @@ SLAM = NaturalAttackTemplate(
     reach_ft=5,
     reach_m=1.5,
     damage=(
-        DamageTemplate(
+        DamageRollTemplate(
             dice_count=1,
             die_size=8,
             damage_type="bludgeoning",

@@ -10,7 +10,7 @@ from .action_template import (
     CLAW,
     SLAM,
     TENTACLE,
-    DamageTemplate,
+    DamageRollTemplate,
     NaturalAttackTemplate,
 )
 
@@ -19,7 +19,7 @@ __all__ = [
     "CLAW",
     "SLAM",
     "TENTACLE",
-    "DamageTemplate",
+    "DamageRollTemplate",
     "NaturalAttackTemplate",
     "get_all_natural_attack_templates",
     "get_recommended_natural_attacks",

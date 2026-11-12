@@ -49,7 +49,7 @@ class DamageRoll:
         """Generate the text entry for the stat block."""
         damage_name = self.damage_type.capitalize()
 
-        return f"{self.average_damage_integer()} {self.dice_expression()} {damage_name} damage"
+        return f"{self.average_damage_integer()} ({self.dice_expression()}) {damage_name} damage"
 
 
 @dataclass(kw_only=True, frozen=True, slots=True)
