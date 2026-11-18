@@ -1,4 +1,4 @@
-"""Calculate simplified monster damage for offensive CR."""
+"""Test simplified monster damage calculations for offensive CR."""
 
 from dataclasses import replace
 
