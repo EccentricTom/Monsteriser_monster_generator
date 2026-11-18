@@ -51,22 +51,44 @@ class BaseMonster:
     expected_cr: float = field(default=1)
 
     def __post_init__(self) -> None:
-        """Set up ability modifiers and base armor class."""
-        self.strength_modifier = self.calculate_ability_modifier(self.strength)
-        self.dexterity_modifier = self.calculate_ability_modifier(self.dexterity)
-        self.constitution_modifier = self.calculate_ability_modifier(self.constitution)
-        self.intelligence_modifier = self.calculate_ability_modifier(self.intelligence)
-        self.wisdom_modifier = self.calculate_ability_modifier(self.wisdom)
-        self.charisma_modifier = self.calculate_ability_modifier(self.charisma)
-        self.armor_class = 10 + self.dexterity_modifier
-        self.current_cr = self.expected_cr
-
-    def validate_legendary(self) -> None:
-        """Validate elements related to the legendary flag and legendary action uses."""
+        """Validate legendary action uses and initialize armor class and CR."""
         if self.legendary_action_uses < 0:
             raise ValueError("Legendary Action uses cannot be negative")
         if self.legendary_action_uses > 0 and not self.is_legendary:
             raise ValueError("A monster with Legendary Action uses must be legendary.")
+
+        self.armor_class = 10 + self.dexterity_modifier
+        self.current_cr = self.expected_cr
+
+    @property
+    def strength_modifier(self) -> int:
+        """Return the modifier for the current Strength score."""
+        return self.calculate_ability_modifier(self.strength)
+
+    @property
+    def dexterity_modifier(self) -> int:
+        """Return the modifier for the current Dexterity score."""
+        return self.calculate_ability_modifier(self.dexterity)
+
+    @property
+    def constitution_modifier(self) -> int:
+        """Return the modifier for the current Constitution score."""
+        return self.calculate_ability_modifier(self.constitution)
+
+    @property
+    def intelligence_modifier(self) -> int:
+        """Return the modifier for the current Intelligence score."""
+        return self.calculate_ability_modifier(self.intelligence)
+
+    @property
+    def wisdom_modifier(self) -> int:
+        """Return the modifier for the current Wisdom score."""
+        return self.calculate_ability_modifier(self.wisdom)
+
+    @property
+    def charisma_modifier(self) -> int:
+        """Return the modifier for the current Charisma score."""
+        return self.calculate_ability_modifier(self.charisma)
 
     @staticmethod
     def calculate_ability_modifier(ability_score: int) -> int:
