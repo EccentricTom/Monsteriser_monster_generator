@@ -24,9 +24,7 @@ def calculate_regeneration_effective_hit_points(
     if rounds < 1:
         raise ValueError("Rounds must be positive")
 
-    regeneration_traits = [
-        trait for trait in monster.traits if isinstance(trait, RegenerationTrait)
-    ]
+    regeneration_traits = monster.get_traits_by_type(RegenerationTrait)
 
     if not regeneration_traits:
         return None

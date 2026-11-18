@@ -34,6 +34,7 @@ class BaseMonster:
 
     is_spellcaster: bool = field(default=False)
     is_legendary: bool = field(default=False)
+    legendary_action_uses: int = 0
     innate_spellcasting: bool = field(default=False)
 
     traits: list[MonsterTrait] = field(default_factory=list[MonsterTrait])
@@ -59,6 +60,13 @@ class BaseMonster:
         self.charisma_modifier = self.calculate_ability_modifier(self.charisma)
         self.armor_class = 10 + self.dexterity_modifier
         self.current_cr = self.expected_cr
+
+    def validate_legendary(self) -> None:
+        """Validate elements related to the legendary flag and legendary action uses."""
+        if self.legendary_action_uses < 0:
+            raise ValueError("Legendary Action uses cannot be negative")
+        if self.legendary_action_uses > 0 and not self.is_legendary:
+            raise ValueError("A monster with Legendary Action uses must be legendary.")
 
     @staticmethod
     def calculate_ability_modifier(ability_score: int) -> int:
@@ -106,3 +114,18 @@ class BaseMonster:
             abilities_by_id[ability.action_id] = ability
 
         return abilities_by_id
+
+    def get_traits_by_type[TraitType: MonsterTrait](
+        self,
+        trait_type: type[TraitType],
+    ) -> tuple[TraitType, ...]:
+        """Return traits matching a specific trait type.
+
+        Args:
+            trait_type: Trait model to retrieve.
+
+        Returns:
+            Traits matching the requested type
+
+        """
+        return tuple(trait for trait in self.traits if isinstance(trait, trait_type))

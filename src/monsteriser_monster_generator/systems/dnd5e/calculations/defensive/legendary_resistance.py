@@ -48,9 +48,7 @@ def calculate_legendary_resistance_effective_hit_points(
     monster: BaseMonster,
 ) -> LegendaryResistanceAdjustmentResult | None:
     """Calculate the effective HP contributed by Legendary Resistance."""
-    legendary_resistance_traits: tuple[LegendaryResistanceTrait, ...] = tuple(
-        trait for trait in monster.traits if isinstance(trait, LegendaryResistanceTrait)
-    )
+    legendary_resistance_traits = monster.get_traits_by_type(LegendaryResistanceTrait)
 
     if not legendary_resistance_traits:
         return None

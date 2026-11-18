@@ -44,7 +44,7 @@ def calculate_passive_damage(
     monster: BaseMonster,
 ) -> PassiveDamageResult:
     """Calculate passive damage contributed by monster traits."""
-    passive_traits = (trait for trait in monster.traits if isinstance(trait, PassiveDamageTrait))
+    passive_traits = monster.get_traits_by_type(PassiveDamageTrait)
 
     average_damage_per_round = sum(
         calculate_passive_trait_average_damage(
