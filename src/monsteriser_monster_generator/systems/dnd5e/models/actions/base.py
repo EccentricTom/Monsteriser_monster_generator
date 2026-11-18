@@ -22,6 +22,12 @@ class MonsterAction:
     timing: ActionTiming = "action"
     usage: ActionUsage = field(default_factory=AtWillUsage)
     description: str = ""
+    max_uses_per_round: int | None = None
+
+    def __post_init__(self) -> None:
+        """Validate max uses per round is positive if not None."""
+        if self.max_uses_per_round is not None and self.max_uses_per_round < 1:
+            raise ValueError("Maximum uses per round must be positive.")
 
     def display_name(self) -> str:
         """Return the action name with its usage notation."""
