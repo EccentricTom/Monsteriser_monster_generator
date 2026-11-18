@@ -11,6 +11,7 @@ from monsteriser_monster_generator.systems.dnd5e.calculations import (
 from monsteriser_monster_generator.systems.dnd5e.models.actions import (
     AttackAction,
     DamageRoll,
+    FlatDamage,
     LimitedUsage,
     SavingThrowAction,
     SavingThrowDamage,
@@ -20,6 +21,9 @@ from monsteriser_monster_generator.systems.dnd5e.models.base_monster import (
 )
 from monsteriser_monster_generator.systems.dnd5e.models.model_types import (
     ActionTiming,
+)
+from monsteriser_monster_generator.systems.dnd5e.models.traits import (
+    PassiveDamageTrait,
 )
 from monsteriser_monster_generator.systems.dnd5e.reference_data import ChallengeRatingReference
 
@@ -385,4 +389,48 @@ def test_calculate_monster_offensive_cr_uses_save_dc() -> None:
     assert result.accuracy.actual_value == 15
     assert result.accuracy.expected_value == 13
     assert result.accuracy.challenge_rating_steps == 1
+    assert result.challenge_rating == 2.0
+
+
+def test_calculate_monster_offensive_cr_includes_passive_damage() -> None:
+    """Include passive damage in DPR without affecting active-action accuracy."""
+    bite = create_attack(
+        action_id="bite",
+        dice_count=2,
+        die_size=6,
+        modifier=3,
+    )
+
+    monster = BaseMonster(
+        name="Burning Monster",
+        abilities=[bite],
+        traits=[
+            PassiveDamageTrait(
+                damage=(
+                    FlatDamage(
+                        amount=5,
+                        damage_type="fire",
+                    ),
+                ),
+                trigger="retaliation",
+            ),
+        ],
+    )
+
+    result = calculate_monster_offensive_cr(
+        monster=monster,
+        reference=create_reference(),
+    )
+
+    assert result.damage.average_damage_per_round == 15.0
+    assert result.damage.passive_damage.average_damage_per_round == 5.0
+
+    assert result.damage_challenge_rating == 2.0
+
+    assert result.accuracy is not None
+    assert result.accuracy.accuracy_type == "attack_bonus"
+    assert result.accuracy.actual_value == 5
+    assert result.accuracy.expected_value == 5
+    assert result.accuracy.challenge_rating_steps == 0
+
     assert result.challenge_rating == 2.0
