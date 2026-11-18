@@ -50,7 +50,7 @@ def test_flat_damage_stat_block_text() -> None:
         damage_type="necrotic",
     )
 
-    assert damage.stat_block_text() == "5 necrotic damage"
+    assert damage.stat_block_text() == "5 Necrotic damage"
 
 
 def test_saving_throw_flat_damage() -> None:

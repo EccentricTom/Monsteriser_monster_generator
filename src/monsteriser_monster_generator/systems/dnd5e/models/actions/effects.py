@@ -70,7 +70,8 @@ class FlatDamage:
 
     def stat_block_text(self) -> str:
         """Return the damage text used in a stat block."""
-        return f"{self.amount} {self.damage_type} damage"
+        damage_name = self.damage_type.capitalize()
+        return f"{self.amount} {damage_name} damage"
 
 
 type DamageModel = DamageRoll | FlatDamage

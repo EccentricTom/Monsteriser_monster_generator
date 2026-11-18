@@ -36,6 +36,7 @@ addopts = [
     "-ra",
     "--strict-markers",
     "--strict-config",
+    "-v",
     "--cov=monsteriser_monster_generator",
     "--cov-report=term-missing",
 ]
